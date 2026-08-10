@@ -128,22 +128,24 @@ function PaymentDialog({ open, onOpenChange, total, onConfirm }: { open: boolean
 }
 
 function ReceiptDialog({ transaction, onClose }: { transaction: LocalTransaction | null; onClose: () => void }) {
-  if (!transaction) return null
+  const liveTransaction = useLiveQuery(() => transaction ? db.transactions.get(transaction.id) : undefined, [transaction?.id])
+  const current = liveTransaction ?? transaction
+  if (!current) return null
   return (
-    <Dialog open={Boolean(transaction)} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={Boolean(current)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="p-0 sm:max-w-md">
         <div className="border-b bg-emerald-500/6 p-5 text-center">
           <div className="mx-auto mb-3 grid size-10 place-items-center rounded-full bg-emerald-500/15 text-emerald-400"><IconCheck className="size-5" /></div>
-          <DialogTitle>Penjualan tersimpan</DialogTitle>
-          <DialogDescription className="mt-1">Aman di perangkat ini — checkout tidak menunggu jaringan.</DialogDescription>
+          <DialogTitle>{current.settlementStatus === "SETTLED" ? "Penjualan settled" : "Provisional tersimpan"}</DialogTitle>
+          <DialogDescription className="mt-1">{current.settlementStatus === "SETTLED" ? "Backend sudah menerima transaksi tanpa duplikasi." : "Aman di perangkat ini — checkout tidak menunggu jaringan."}</DialogDescription>
         </div>
         <div className="grid gap-3 p-4">
-          <div className="flex items-center justify-between"><div><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Invoice</div><div className="text-sm font-semibold">{transaction.invoiceNumber}</div></div><div className="flex gap-1.5"><SettlementBadge status={transaction.settlementStatus} /><SyncBadge status={transaction.syncStatus} /></div></div>
+          <div className="flex items-center justify-between"><div><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Invoice</div><div className="text-sm font-semibold">{current.invoiceNumber}</div></div><div className="flex gap-1.5"><SettlementBadge status={current.settlementStatus} /><SyncBadge status={current.syncStatus} /></div></div>
           <Separator />
-          <div className="grid gap-2">{transaction.items.map((item) => <div key={item.productId} className="flex justify-between text-xs"><span className="text-muted-foreground">{item.quantity}× {item.name}</span><span className="tabular-nums">{formatCurrency(item.subtotal)}</span></div>)}</div>
+          <div className="grid gap-2">{current.items.map((item) => <div key={item.productId} className="flex justify-between text-xs"><span className="text-muted-foreground">{item.quantity}× {item.name}</span><span className="tabular-nums">{formatCurrency(item.subtotal)}</span></div>)}</div>
           <Separator />
-          <div className="flex items-center justify-between"><div><div className="text-[10px] text-muted-foreground">{paymentLabels[transaction.paymentMethod]}</div><strong className="text-base">Total</strong></div><strong className="text-xl tabular-nums">{formatCurrency(transaction.total)}</strong></div>
-          <div className="flex items-start gap-2 rounded-md border border-amber-500/15 bg-amber-500/7 p-2.5 text-[10px] leading-4 text-amber-200"><IconWifiOff className="mt-0.5 size-3.5 shrink-0" /><span><strong>Provisional</strong> sampai backend menerima transaksi. ID yang sama akan dipakai saat retry agar tidak duplikat.</span></div>
+          <div className="flex items-center justify-between"><div><div className="text-[10px] text-muted-foreground">{paymentLabels[current.paymentMethod]}</div><strong className="text-base">Total</strong></div><strong className="text-xl tabular-nums">{formatCurrency(current.total)}</strong></div>
+          <div className={cn("flex items-start gap-2 rounded-md border p-2.5 text-[10px] leading-4", current.settlementStatus === "SETTLED" ? "border-emerald-500/15 bg-emerald-500/7 text-emerald-200" : "border-amber-500/15 bg-amber-500/7 text-amber-200")}><IconWifiOff className="mt-0.5 size-3.5 shrink-0" /><span>{current.settlementStatus === "SETTLED" ? <><strong>Settled.</strong> Histori ini sekarang immutable; koreksi dibuat sebagai record baru.</> : <><strong>Provisional</strong> sampai backend menerima transaksi. ID yang sama akan dipakai saat retry agar tidak duplikat.</>}</span></div>
         </div>
         <DialogFooter className="border-t p-4"><Button variant="outline" onClick={() => window.print()}>Cetak struk</Button><Button onClick={onClose}>Transaksi baru</Button></DialogFooter>
       </DialogContent>
@@ -193,9 +195,12 @@ export function CheckoutPage() {
       retryCount: 0,
     }
 
-    await db.transaction("rw", [db.transactions, db.outbox], async () => {
+    await db.transaction("rw", [db.transactions, db.outbox, db.products], async () => {
       await db.transactions.add(transaction)
       await db.outbox.add({ id: `outbox-${id}`, transactionId: id, operation: "UPSERT_TRANSACTION", payloadVersion: 1, status: "PENDING", retryCount: 0, createdAt })
+      for (const { product, quantity } of cartItems) {
+        await db.products.update(product.id, { stock: product.stock - quantity })
+      }
     })
 
     setPaymentOpen(false)
