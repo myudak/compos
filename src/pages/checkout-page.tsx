@@ -128,6 +128,30 @@ function PaymentDialog({ open, onOpenChange, total, onConfirm }: { open: boolean
   )
 }
 
+function MobileCartDialog({ open, onOpenChange, items, subtotal, onAdd, onDecrement, onRemove, onClear, onCheckout }: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  items: Array<{ product: Product; quantity: number }>
+  subtotal: number
+  onAdd: (productId: string) => void
+  onDecrement: (productId: string) => void
+  onRemove: (productId: string) => void
+  onClear: () => void
+  onCheckout: () => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bottom-0 left-0 top-auto max-h-[88svh] w-full max-w-none translate-x-0 translate-y-0 gap-0 rounded-b-none p-0 xl:hidden">
+        <DialogHeader className="border-b p-4"><DialogTitle>Pesanan aktif</DialogTitle><DialogDescription>{items.reduce((sum, item) => sum + item.quantity, 0)} item · draft tersimpan di perangkat</DialogDescription></DialogHeader>
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          <div className="grid gap-2">{items.map(({ product, quantity }) => <Card key={product.id} className="flex items-center gap-2.5 p-2.5"><div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ background: `color-mix(in srgb, ${product.accent} 16%, #18181b)`, color: product.accent }}><IconCoffee className="size-4" /></div><div className="min-w-0 flex-1"><div className="truncate text-xs font-medium">{product.name}</div><div className="mt-0.5 text-[10px] text-muted-foreground">{formatCurrency(product.price)} · {formatCurrency(product.price * quantity)}</div></div><div className="flex items-center rounded-md border bg-background"><button aria-label={`Kurangi ${product.name}`} onClick={() => onDecrement(product.id)} className="grid size-8 place-items-center text-muted-foreground hover:text-foreground"><IconMinus className="size-3" /></button><span className="w-6 text-center text-xs font-semibold tabular-nums">{quantity}</span><button aria-label={`Tambah ${product.name}`} onClick={() => onAdd(product.id)} className="grid size-8 place-items-center text-muted-foreground hover:text-foreground"><IconPlus className="size-3" /></button></div><button aria-label={`Hapus ${product.name}`} onClick={() => onRemove(product.id)} className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-red-500/10 hover:text-red-400"><IconTrash className="size-3.5" /></button></Card>)}</div>
+        </div>
+        <div className="border-t bg-card p-4"><div className="mb-3 flex items-end justify-between"><div><div className="text-[10px] text-muted-foreground">Total</div><strong className="text-xl tabular-nums">{formatCurrency(subtotal)}</strong></div><Button variant="ghost" size="sm" onClick={onClear}><IconTrash /> Kosongkan</Button></div><Button size="lg" className="w-full" onClick={onCheckout}>Pilih pembayaran <IconChevronRight /></Button></div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function ReceiptDialog({ transaction, onClose }: { transaction: LocalTransaction | null; onClose: () => void }) {
   const liveTransaction = useLiveQuery(() => transaction ? db.transactions.get(transaction.id) : undefined, [transaction?.id])
   const current = liveTransaction ?? transaction
@@ -161,6 +185,7 @@ export function CheckoutPage() {
   const [category, setCategory] = useState<(typeof categories)[number]>("Semua")
   const [query, setQuery] = useState("")
   const [paymentOpen, setPaymentOpen] = useState(false)
+  const [mobileCartOpen, setMobileCartOpen] = useState(false)
   const [receipt, setReceipt] = useState<LocalTransaction | null>(null)
 
   const cartItems = useMemo(() => products.filter((product) => cart[product.id]).map((product) => ({ product, quantity: cart[product.id] })), [products, cart])
@@ -245,7 +270,7 @@ export function CheckoutPage() {
       <aside className="hidden min-h-0 bg-card/35 xl:flex xl:flex-col">
         <div className="flex items-center justify-between border-b px-4 py-3"><div><div className="text-sm font-semibold">Pesanan aktif</div><div className="text-[10px] text-muted-foreground">{totalItems ? `${totalItems} item` : "Belum ada item"}</div></div>{totalItems > 0 && <Button variant="ghost" size="sm" onClick={clearCart} className="text-muted-foreground"><IconTrash /> Kosongkan</Button>}</div>
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
-          {cartItems.length === 0 ? <div className="grid h-full min-h-64 place-items-center text-center"><div><div className="mx-auto mb-3 grid size-11 place-items-center rounded-full border bg-background text-muted-foreground"><IconShoppingBag className="size-5" /></div><p className="text-xs font-medium">Keranjang masih kosong</p><p className="mt-1 max-w-52 text-[10px] leading-4 text-muted-foreground">Klik produk di katalog. Checkout tetap bisa dilakukan meski jaringan terputus.</p></div></div> : <div className="grid gap-2">{cartItems.map(({ product, quantity }) => <Card key={product.id} className="flex items-center gap-2 p-2.5"><div className="grid size-9 shrink-0 place-items-center rounded-md" style={{ background: `color-mix(in srgb, ${product.accent} 16%, #18181b)`, color: product.accent }}><IconCoffee className="size-4" /></div><div className="min-w-0 flex-1"><div className="truncate text-xs font-medium">{product.name}</div><div className="mt-0.5 text-[10px] text-muted-foreground tabular-nums">{formatCurrency(product.price)}</div></div><div className="flex items-center rounded-md border bg-background"><button onClick={() => decrementItem(product.id)} className="grid size-7 place-items-center text-muted-foreground hover:text-foreground"><IconMinus className="size-3" /></button><span className="w-5 text-center text-xs font-semibold tabular-nums">{quantity}</span><button onClick={() => addItem(product.id)} className="grid size-7 place-items-center text-muted-foreground hover:text-foreground"><IconPlus className="size-3" /></button></div><button onClick={() => removeItem(product.id)} className="sr-only">Hapus {product.name}</button></Card>)}</div>}
+          {cartItems.length === 0 ? <div className="grid h-full min-h-64 place-items-center text-center"><div><div className="mx-auto mb-3 grid size-11 place-items-center rounded-full border bg-background text-muted-foreground"><IconShoppingBag className="size-5" /></div><p className="text-xs font-medium">Keranjang masih kosong</p><p className="mt-1 max-w-52 text-[10px] leading-4 text-muted-foreground">Klik produk di katalog. Checkout tetap bisa dilakukan meski jaringan terputus.</p></div></div> : <div className="grid gap-2">{cartItems.map(({ product, quantity }) => <Card key={product.id} className="flex items-center gap-2 p-2.5"><div className="grid size-9 shrink-0 place-items-center rounded-md" style={{ background: `color-mix(in srgb, ${product.accent} 16%, #18181b)`, color: product.accent }}><IconCoffee className="size-4" /></div><div className="min-w-0 flex-1"><div className="truncate text-xs font-medium">{product.name}</div><div className="mt-0.5 text-[10px] text-muted-foreground tabular-nums">{formatCurrency(product.price)}</div></div><div className="flex items-center rounded-md border bg-background"><button aria-label={`Kurangi ${product.name}`} onClick={() => decrementItem(product.id)} className="grid size-7 place-items-center text-muted-foreground hover:text-foreground"><IconMinus className="size-3" /></button><span className="w-5 text-center text-xs font-semibold tabular-nums">{quantity}</span><button aria-label={`Tambah ${product.name}`} onClick={() => addItem(product.id)} className="grid size-7 place-items-center text-muted-foreground hover:text-foreground"><IconPlus className="size-3" /></button></div><button onClick={() => removeItem(product.id)} className="sr-only">Hapus {product.name}</button></Card>)}</div>}
         </div>
         <div className="border-t bg-card p-4">
           <div className="grid gap-2 text-xs"><div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span className="tabular-nums">{formatCurrency(subtotal)}</span></div><div className="flex justify-between text-muted-foreground"><span>Diskon</span><span>—</span></div><Separator /><div className="flex items-end justify-between"><strong>Total</strong><strong className="text-2xl tracking-[-0.04em] tabular-nums">{formatCurrency(subtotal)}</strong></div></div>
@@ -254,8 +279,9 @@ export function CheckoutPage() {
         </div>
       </aside>
 
-      {totalItems > 0 && <div className="fixed inset-x-3 bottom-[72px] z-30 xl:hidden"><Button size="lg" className="h-12 w-full justify-between px-4 shadow-2xl" onClick={() => setPaymentOpen(true)}><span>{totalItems} item</span><span>{formatCurrency(subtotal)} · Bayar <IconChevronRight className="ml-1 inline size-4" /></span></Button></div>}
+      {totalItems > 0 && <div className="fixed inset-x-3 bottom-[72px] z-30 xl:hidden"><Button size="lg" className="h-12 w-full justify-between px-4 shadow-2xl" onClick={() => setMobileCartOpen(true)}><span>{totalItems} item</span><span>{formatCurrency(subtotal)} · Lihat pesanan <IconChevronRight className="ml-1 inline size-4" /></span></Button></div>}
 
+      <MobileCartDialog open={mobileCartOpen} onOpenChange={setMobileCartOpen} items={cartItems} subtotal={subtotal} onAdd={addItem} onDecrement={decrementItem} onRemove={removeItem} onClear={() => { clearCart(); setMobileCartOpen(false) }} onCheckout={() => { setMobileCartOpen(false); setPaymentOpen(true) }} />
       <PaymentDialog open={paymentOpen} onOpenChange={setPaymentOpen} total={subtotal} onConfirm={confirmSale} />
       <ReceiptDialog transaction={receipt} onClose={() => setReceipt(null)} />
     </div>

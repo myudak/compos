@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react"
-import { IconArrowsExchange, IconBuildingStore, IconChevronDown, IconClock, IconCloudUpload, IconLayoutDashboard, IconPackage, IconReceipt2, IconSettings, IconWifiOff } from "@tabler/icons-react"
+import { IconArrowsExchange, IconBuildingStore, IconChevronDown, IconClock, IconCloudUpload, IconLayoutDashboard, IconPackage, IconReceipt2, IconScale, IconSettings, IconWifiOff } from "@tabler/icons-react"
 import { useLiveQuery } from "dexie-react-hooks"
 import { NavLink, useLocation } from "react-router-dom"
 import { toast } from "sonner"
@@ -18,6 +18,7 @@ const navItems = [
   { label: "Transaksi", href: "/transactions", icon: IconReceipt2 },
   { label: "Produk", href: "/products", icon: IconPackage },
   { label: "Sync & Data", href: "/sync", icon: IconArrowsExchange },
+  { label: "Reconciliation", href: "/reconciliation", icon: IconScale, adminOnly: true },
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -30,6 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     const value = await db.settings.get("authSession")
     return value ? JSON.parse(value.value) as AuthSession : null
   }, [])
+  const visibleNavItems = navItems.filter((item) => !item.adminOnly || session?.operator.role === "ADMIN")
 
   useEffect(() => {
     if (connection !== "ONLINE") return
@@ -76,7 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <nav className="grid gap-1 px-2">
           <div className="px-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Workspace</div>
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon
             return (
               <NavLink key={item.href} to={item.href} end={item.href === "/"} className={({ isActive }) => cn("flex h-8 items-center gap-2 rounded-md px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground", isActive && "bg-accent text-foreground") }>
@@ -104,7 +106,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div><div className="text-xs font-semibold">Kedai Nusa</div><div className="text-[9px] text-muted-foreground">Blok M</div></div>
           </div>
           <div className="hidden min-w-0 items-center gap-2 lg:flex">
-            <div className="text-xs font-medium text-muted-foreground">{navItems.find((item) => location.pathname === item.href || (item.href !== "/" && location.pathname.startsWith(item.href)))?.label ?? "Operator"}</div>
+            <div className="text-xs font-medium text-muted-foreground">{visibleNavItems.find((item) => location.pathname === item.href || (item.href !== "/" && location.pathname.startsWith(item.href)))?.label ?? "Operator"}</div>
             <span className="text-border">/</span>
             <div className="truncate text-xs text-muted-foreground">Shift aktif sejak 08:00</div>
           </div>
@@ -127,8 +129,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main className="min-h-[calc(100svh-62px)] pb-16 lg:pb-0">{children}</main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid h-16 grid-cols-4 border-t bg-background/94 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
-        {navItems.map((item) => {
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid h-16 border-t bg-background/94 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden" style={{ gridTemplateColumns: `repeat(${visibleNavItems.length}, minmax(0, 1fr))` }}>
+        {visibleNavItems.map((item) => {
           const Icon = item.icon
           return <NavLink key={item.href} to={item.href} end={item.href === "/"} className={({ isActive }) => cn("relative flex flex-col items-center justify-center gap-0.5 text-[9px] font-medium text-muted-foreground", isActive && "text-primary") }><Icon className="size-[18px]" />{item.label}{item.href === "/sync" && pendingCount > 0 && <span className="absolute right-[25%] top-2 size-2 rounded-full bg-amber-400 ring-2 ring-background" />}</NavLink>
         })}

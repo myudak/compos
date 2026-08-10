@@ -26,7 +26,12 @@ export async function processBackendOutbox(pool: DatabasePool, limit = 50) {
         continue
       }
       if (row.event_type === "TRANSACTION_SETTLED") {
-        const items = await client.query<{ product_id: string; quantity: number }>("SELECT product_id, quantity FROM transaction_items WHERE merchant_id = $1 AND transaction_id = $2", [row.merchant_id, row.aggregate_id])
+        const items = await client.query<{ product_id: string; quantity: number }>(
+          `SELECT i.product_id, i.quantity FROM transaction_items i
+           JOIN transactions t ON t.merchant_id = i.merchant_id AND t.id = i.transaction_id
+           WHERE i.merchant_id = $1 AND i.transaction_id = $2 AND t.transaction_status = 'CONFIRMED'`,
+          [row.merchant_id, row.aggregate_id],
+        )
         for (const item of items.rows) {
           const movement = await client.query<{ quantity_delta: number }>(
             `INSERT INTO inventory_movements (merchant_id, product_id, transaction_id, quantity_delta)

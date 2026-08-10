@@ -1,4 +1,5 @@
-import { IconArrowLeft, IconBuildingBank, IconCash, IconCheck, IconDeviceMobile, IconDeviceTablet, IconDownload, IconHistory, IconLock, IconPrinter, IconRefresh } from "@tabler/icons-react"
+import { useState } from "react"
+import { IconArrowLeft, IconBan, IconBuildingBank, IconCash, IconCheck, IconDeviceMobile, IconDeviceTablet, IconDownload, IconHistory, IconLock, IconPrinter, IconRefresh } from "@tabler/icons-react"
 import { useLiveQuery } from "dexie-react-hooks"
 import { Link, useParams } from "react-router-dom"
 import { toast } from "sonner"
@@ -7,9 +8,11 @@ import { SettlementBadge, SyncBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { db } from "@/lib/db"
 import { formatCurrency, formatTransactionDate, paymentLabels, shortDeviceId } from "@/lib/format"
 import { retryTransaction } from "@/lib/sync-engine"
+import { voidProvisionalTransaction } from "@/lib/transaction-actions"
 import { cn } from "@/lib/utils"
 import { usePosStore } from "@/stores/pos-store"
 
@@ -17,6 +20,7 @@ export function TransactionDetailPage() {
   const { id } = useParams()
   const transaction = useLiveQuery(() => id ? db.transactions.get(id) : undefined, [id])
   const connection = usePosStore((state) => state.connection)
+  const [voidOpen, setVoidOpen] = useState(false)
 
   if (transaction === undefined) return <div className="grid min-h-96 place-items-center text-xs text-muted-foreground">Membuka transaksi lokal…</div>
   if (!transaction) return <div className="grid min-h-96 place-items-center text-center"><div><p className="text-sm font-medium">Transaksi tidak ditemukan</p><Link to="/transactions"><Button variant="link">Kembali ke transaksi</Button></Link></div></div>
@@ -40,11 +44,19 @@ export function TransactionDetailPage() {
     toast.success("Transaksi berhasil disinkronkan", { description: "Backend menerima ID yang sama tanpa duplikasi." })
   }
 
+  async function voidSale() {
+    try {
+      await voidProvisionalTransaction(transactionId)
+      setVoidOpen(false)
+      toast.success("Transaksi di-void", { description: "Void akan disinkronkan sebagai histori; stok lokal telah dikembalikan." })
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Void gagal") }
+  }
+
   return (
     <div>
       <div className="flex flex-col gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex items-center gap-3"><Link to="/transactions"><Button variant="outline" size="icon"><IconArrowLeft /></Button></Link><div><div className="flex flex-wrap items-center gap-2"><h1 className="text-lg font-semibold tracking-[-0.03em]">{transaction.invoiceNumber}</h1><SettlementBadge status={transaction.settlementStatus} /><SyncBadge status={transaction.syncStatus} /></div><p className="mt-1 text-[11px] text-muted-foreground">{formatTransactionDate(transaction.createdAt)} · Kedai Nusa / Blok M</p></div></div>
-        <div className="flex gap-2"><Button variant="outline"><IconPrinter /> Cetak</Button><Button variant="outline"><IconDownload /> Unduh</Button>{transaction.syncStatus === "FAILED" && <Button onClick={retry}><IconRefresh /> Retry sync</Button>}</div>
+        <div className="flex gap-2"><Button variant="outline"><IconPrinter /> Cetak</Button><Button variant="outline"><IconDownload /> Unduh</Button>{transaction.settlementStatus === "PROVISIONAL" && transaction.transactionStatus !== "VOIDED" && <Button variant="destructive" onClick={() => setVoidOpen(true)}><IconBan /> Void</Button>}{transaction.syncStatus === "FAILED" && <Button onClick={retry}><IconRefresh /> Retry sync</Button>}</div>
       </div>
 
       <div className="grid gap-4 p-4 sm:p-6 xl:grid-cols-[minmax(0,1fr)_340px]">
@@ -67,6 +79,7 @@ export function TransactionDetailPage() {
           <Card><CardHeader><CardTitle>Device & audit</CardTitle></CardHeader><CardContent className="grid gap-2 text-xs"><div className="flex justify-between"><span className="text-muted-foreground">Operator</span><span>{transaction.operatorName} · {transaction.operatorId}</span></div><Separator /><div className="flex justify-between"><span className="text-muted-foreground">Device ID</span><span className="font-mono text-[10px]">{shortDeviceId(transaction.deviceId)}</span></div><Separator /><div className="flex justify-between"><span className="text-muted-foreground">Retry</span><span>{transaction.retryCount}×</span></div><div className="mt-1 flex items-start gap-2 rounded-md bg-secondary p-2 text-[10px] leading-4 text-muted-foreground"><IconDeviceTablet className="mt-0.5 size-3.5 shrink-0" />ID transaksi dibuat di device dan tidak berubah pada setiap retry.</div></CardContent></Card>
         </div>
       </div>
+      <Dialog open={voidOpen} onOpenChange={setVoidOpen}><DialogContent><DialogHeader><DialogTitle>Void transaksi provisional?</DialogTitle><DialogDescription>Item akan dikembalikan ke proyeksi stok lokal. Record void tetap disinkronkan agar audit history tidak hilang.</DialogDescription></DialogHeader><div className="rounded-md bg-secondary p-3 text-xs"><div className="flex justify-between"><span>{transaction.invoiceNumber}</span><strong>{formatCurrency(transaction.total)}</strong></div></div><DialogFooter><Button variant="outline" onClick={() => setVoidOpen(false)}>Batal</Button><Button variant="destructive" onClick={voidSale}>Ya, void transaksi</Button></DialogFooter></DialogContent></Dialog>
     </div>
   )
 }

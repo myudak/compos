@@ -12,6 +12,7 @@ import { registerCorrectionRoutes } from "./routes/corrections.js"
 import { registerDeviceRoutes } from "./routes/devices.js"
 import { registerDiscrepancyRoutes } from "./routes/discrepancies.js"
 import { registerSyncRoutes } from "./routes/sync.js"
+import { registerTransactionRoutes } from "./routes/transactions.js"
 
 export async function buildApp(pool: DatabasePool = defaultPool) {
   const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info", redact: ["req.headers.authorization", "req.body.pin"] } })
@@ -34,6 +35,7 @@ export async function buildApp(pool: DatabasePool = defaultPool) {
   registerAuthRoutes(app, pool)
   registerBootstrapRoutes(app, pool)
   registerSyncRoutes(app, pool)
+  registerTransactionRoutes(app, pool)
   registerCorrectionRoutes(app, pool)
   registerDiscrepancyRoutes(app, pool)
 

@@ -15,6 +15,7 @@ const SyncPage = lazy(() => import("@/pages/sync-page").then((module) => ({ defa
 const TransactionDetailPage = lazy(() => import("@/pages/transaction-detail-page").then((module) => ({ default: module.TransactionDetailPage })))
 const TransactionsPage = lazy(() => import("@/pages/transactions-page").then((module) => ({ default: module.TransactionsPage })))
 const LoginPage = lazy(() => import("@/pages/login-page").then((module) => ({ default: module.LoginPage })))
+const ReconciliationPage = lazy(() => import("@/pages/reconciliation-page").then((module) => ({ default: module.ReconciliationPage })))
 
 function RouteFallback() {
   return <div className="grid min-h-[60svh] place-items-center"><div className="text-center"><div className="mx-auto mb-2 size-5 animate-spin rounded-full border-2 border-primary border-t-transparent" /><p className="text-[10px] text-muted-foreground">Membuka data lokal…</p></div></div>
@@ -55,6 +56,7 @@ export default function App() {
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/sync" element={<SyncPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/reconciliation" element={session?.operator.role === "ADMIN" ? <ReconciliationPage /> : <Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

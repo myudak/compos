@@ -13,19 +13,21 @@ import { formatCurrency, formatTransactionDate, paymentLabels } from "@/lib/form
 import type { LocalTransaction } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
-type Filter = "ALL" | "PENDING" | "SYNCED" | "FAILED"
+type Filter = "ALL" | "PENDING" | "SYNCED" | "FAILED" | "VOIDED"
 
 const filters: { value: Filter; label: string }[] = [
   { value: "ALL", label: "Semua" },
   { value: "PENDING", label: "Pending Sync" },
   { value: "SYNCED", label: "Settled" },
   { value: "FAILED", label: "Gagal" },
+  { value: "VOIDED", label: "Voided" },
 ]
 
 function matchesFilter(transaction: LocalTransaction, filter: Filter) {
   if (filter === "PENDING") return transaction.syncStatus === "LOCAL_ONLY" || transaction.syncStatus === "SYNCING"
   if (filter === "SYNCED") return transaction.syncStatus === "SYNCED"
   if (filter === "FAILED") return transaction.syncStatus === "FAILED"
+  if (filter === "VOIDED") return transaction.transactionStatus === "VOIDED"
   return true
 }
 
@@ -57,7 +59,7 @@ export function TransactionsPage() {
         <div className="overflow-hidden rounded-lg border">
           <table className="w-full text-left text-xs">
             <thead className="bg-secondary/60 text-[9px] uppercase tracking-[0.12em] text-muted-foreground"><tr><th className="px-3 py-2.5 font-medium">Invoice</th><th className="px-3 py-2.5 font-medium">Waktu</th><th className="px-3 py-2.5 font-medium">Pembayaran</th><th className="px-3 py-2.5 font-medium">Status</th><th className="px-3 py-2.5 text-right font-medium">Total</th><th className="w-10" /></tr></thead>
-            <tbody className="divide-y divide-border">{filtered.map((transaction) => <tr key={transaction.id} className="group bg-card/40 transition-colors hover:bg-accent/60"><td className="px-3 py-3"><div className="font-semibold">{transaction.invoiceNumber}</div><div className="mt-0.5 text-[10px] text-muted-foreground">{transaction.items.length} jenis · {transaction.items.reduce((sum, item) => sum + item.quantity, 0)} item</div></td><td className="px-3 py-3 text-muted-foreground">{formatTransactionDate(transaction.createdAt)}</td><td className="px-3 py-3"><div>{paymentLabels[transaction.paymentMethod]}</div><div className="mt-0.5 text-[9px] text-muted-foreground">{transaction.paymentVerificationType === "OPERATOR_ASSERTED" ? "Operator asserted" : "System verifiable"}</div></td><td className="px-3 py-3"><div className="flex flex-wrap gap-1"><SettlementBadge status={transaction.settlementStatus} /><SyncBadge status={transaction.syncStatus} /></div></td><td className="px-3 py-3 text-right font-semibold tabular-nums">{formatCurrency(transaction.total)}</td><td><Link to={`/transactions/${transaction.id}`} className="grid size-8 place-items-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"><IconArrowRight className="size-4" /></Link></td></tr>)}</tbody>
+            <tbody className="divide-y divide-border">{filtered.map((transaction) => <tr key={transaction.id} className="group bg-card/40 transition-colors hover:bg-accent/60"><td className="px-3 py-3"><div className="flex items-center gap-2"><span className="font-semibold">{transaction.invoiceNumber}</span>{transaction.transactionStatus === "VOIDED" && <span className="rounded bg-zinc-500/15 px-1.5 py-0.5 text-[8px] font-bold uppercase text-zinc-400">Voided</span>}</div><div className="mt-0.5 text-[10px] text-muted-foreground">{transaction.items.length} jenis · {transaction.items.reduce((sum, item) => sum + item.quantity, 0)} item</div></td><td className="px-3 py-3 text-muted-foreground">{formatTransactionDate(transaction.createdAt)}</td><td className="px-3 py-3"><div>{paymentLabels[transaction.paymentMethod]}</div><div className="mt-0.5 text-[9px] text-muted-foreground">{transaction.paymentVerificationType === "OPERATOR_ASSERTED" ? "Operator asserted" : "System verifiable"}</div></td><td className="px-3 py-3"><div className="flex flex-wrap gap-1"><SettlementBadge status={transaction.settlementStatus} /><SyncBadge status={transaction.syncStatus} /></div></td><td className="px-3 py-3 text-right font-semibold tabular-nums">{formatCurrency(transaction.total)}</td><td><Link to={`/transactions/${transaction.id}`} className="grid size-8 place-items-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"><IconArrowRight className="size-4" /></Link></td></tr>)}</tbody>
           </table>
         </div>
       </div>

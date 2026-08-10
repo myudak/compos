@@ -147,4 +147,60 @@ export async function sendTransactionBatch(session: AuthSession, device: DeviceI
   return response.results
 }
 
+export type BackendTransaction = {
+  id: string
+  invoice_number: string
+  transaction_status: "CONFIRMED" | "VOIDED"
+  settlement_status: "SETTLED"
+  payment_method: LocalTransaction["paymentMethod"]
+  payment_verification_type: LocalTransaction["paymentVerificationType"]
+  total: number
+  created_at_device: string
+  received_at_backend: string
+  operator_name: string
+  correction_total: number
+}
+
+export type CorrectionRecord = {
+  id: string
+  transaction_id: string
+  reason: string
+  adjustment_amount: number
+  evidence_reference?: string
+  created_at: string
+  admin_name: string
+  invoice_number: string
+}
+
+export type InventoryDiscrepancy = {
+  id: string
+  product_id: string
+  product_name: string
+  detected_at: string
+  projected_stock: number
+  status: "OPEN" | "RESOLVED"
+  resolution?: string
+  resolved_at?: string
+}
+
+export async function fetchBackendTransactions(session: AuthSession, paymentRiskOnly = false) {
+  return apiRequest<{ transactions: BackendTransaction[] }>(`/v1/transactions?limit=100&paymentRiskOnly=${paymentRiskOnly}`, {}, session.token)
+}
+
+export async function createCorrection(session: AuthSession, transactionId: string, input: { reason: string; adjustmentAmount: number; evidenceReference?: string }) {
+  return apiRequest<{ correctionId: string; status: string }>(`/v1/admin/transactions/${encodeURIComponent(transactionId)}/corrections`, { method: "POST", body: JSON.stringify(input) }, session.token)
+}
+
+export async function fetchCorrections(session: AuthSession) {
+  return apiRequest<{ corrections: CorrectionRecord[] }>("/v1/admin/corrections", {}, session.token)
+}
+
+export async function fetchInventoryDiscrepancies(session: AuthSession) {
+  return apiRequest<{ discrepancies: InventoryDiscrepancy[] }>("/v1/inventory/discrepancies", {}, session.token)
+}
+
+export async function resolveInventoryDiscrepancy(session: AuthSession, id: string, input: { resolution: string; adjustedStock?: number }) {
+  return apiRequest<{ id: string; status: string }>(`/v1/inventory/discrepancies/${encodeURIComponent(id)}/resolve`, { method: "POST", body: JSON.stringify(input) }, session.token)
+}
+
 export { API_URL }
