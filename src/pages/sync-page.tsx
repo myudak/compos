@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
-import { db, DEVICE_ID } from "@/lib/db"
+import { db, getOrCreateDeviceIdentity } from "@/lib/db"
 import { formatCurrency, formatTransactionDate, fromNow, shortDeviceId } from "@/lib/format"
 import { processOutbox, retryTransaction } from "@/lib/sync-engine"
 import { cn } from "@/lib/utils"
@@ -21,6 +21,7 @@ export function SyncPage() {
   const transactions = useLiveQuery(() => db.transactions.toArray(), [], [])
   const attempts = useLiveQuery(() => db.syncAttempts.orderBy("createdAt").reverse().limit(8).toArray(), [], [])
   const lastSync = useLiveQuery(() => db.settings.get("lastSyncAt"), [])
+  const device = useLiveQuery(() => getOrCreateDeviceIdentity(), [])
   const queueTransactions = outbox.map((entry) => ({ entry, transaction: transactions.find((transaction) => transaction.id === entry.transactionId) })).filter((item) => item.transaction)
   const failed = outbox.filter((entry) => entry.status === "FAILED").length
 
@@ -68,7 +69,7 @@ export function SyncPage() {
             ["03", "Batch sync", "Retry + exponential backoff"],
             ["04", "Settled", "Accepted / already processed"],
           ].map(([index, title, copy], row) => <div key={index} className="contents"><div className="relative flex flex-col items-center"><div className="grid size-6 place-items-center rounded-full border bg-secondary text-[9px] font-bold text-primary">{index}</div>{row < 3 && <div className="h-full w-px bg-border" />}</div><div className="pb-4"><div className="text-xs font-medium">{title}</div><div className="mt-0.5 text-[10px] leading-4 text-muted-foreground">{copy}</div></div></div>)}</div></CardContent></Card>
-          <Card><CardHeader><CardTitle>Device diagnostics</CardTitle></CardHeader><CardContent className="grid gap-2 text-xs"><div className="flex justify-between"><span className="text-muted-foreground">Device</span><span className="font-mono text-[10px]">{shortDeviceId(DEVICE_ID)}</span></div><Separator /><div className="flex justify-between"><span className="text-muted-foreground">Local DB</span><span className="text-emerald-400">Healthy</span></div><Separator /><div className="flex justify-between"><span className="text-muted-foreground">Payload version</span><span>v1</span></div><Separator /><div className="flex justify-between"><span className="text-muted-foreground">Queue policy</span><span>25 / batch</span></div><div className="mt-1 flex items-start gap-2 rounded-md bg-secondary p-2 text-[10px] leading-4 text-muted-foreground"><IconShieldCheck className="mt-0.5 size-3.5 shrink-0 text-primary" />Transaksi settled bersifat immutable; koreksi selalu append-only.</div></CardContent></Card>
+          <Card><CardHeader><CardTitle>Device diagnostics</CardTitle></CardHeader><CardContent className="grid gap-2 text-xs"><div className="flex justify-between"><span className="text-muted-foreground">Device</span><span className="font-mono text-[10px]">{device ? shortDeviceId(device.id) : "Memuat…"}</span></div><Separator /><div className="flex justify-between"><span className="text-muted-foreground">Local DB</span><span className="text-emerald-400">Healthy</span></div><Separator /><div className="flex justify-between"><span className="text-muted-foreground">Payload version</span><span>v1</span></div><Separator /><div className="flex justify-between"><span className="text-muted-foreground">Queue policy</span><span>25 / batch</span></div><div className="mt-1 flex items-start gap-2 rounded-md bg-secondary p-2 text-[10px] leading-4 text-muted-foreground"><IconShieldCheck className="mt-0.5 size-3.5 shrink-0 text-primary" />Transaksi settled bersifat immutable; koreksi selalu append-only.</div></CardContent></Card>
         </div>
       </div>
 

@@ -8,7 +8,8 @@ import { ConnectionBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
 import { db } from "@/lib/db"
 import { fromNow } from "@/lib/format"
-import { processOutbox } from "@/lib/sync-engine"
+import { processOutbox, refreshConnectivity } from "@/lib/sync-engine"
+import type { AuthSession } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { usePosStore } from "@/stores/pos-store"
 
@@ -25,6 +26,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [switching, setSwitching] = useState(false)
   const pendingCount = useLiveQuery(() => db.outbox.count(), [], 0)
   const lastSyncAt = useLiveQuery(() => db.settings.get("lastSyncAt"), [])
+  const session = useLiveQuery(async () => {
+    const value = await db.settings.get("authSession")
+    return value ? JSON.parse(value.value) as AuthSession : null
+  }, [])
 
   useEffect(() => {
     if (connection !== "ONLINE") return
@@ -33,24 +38,19 @@ export function AppShell({ children }: { children: ReactNode }) {
     })
   }, [connection])
 
-  useEffect(() => {
-    const handleActualOffline = () => setConnection("OFFLINE")
-    window.addEventListener("offline", handleActualOffline)
-    return () => window.removeEventListener("offline", handleActualOffline)
-  }, [setConnection])
-
   async function toggleConnection() {
     if (switching) return
     if (connection === "ONLINE") {
+      usePosStore.getState().setForcedOffline(true)
       setConnection("OFFLINE")
       toast.message("Mode offline aktif", { description: "Checkout tetap dapat digunakan. Data disimpan di perangkat ini." })
       return
     }
     setSwitching(true)
-    setConnection("RECONNECTING")
-    await new Promise((resolve) => setTimeout(resolve, 850))
-    setConnection("ONLINE")
+    usePosStore.getState().setForcedOffline(false)
+    const connected = await refreshConnectivity()
     setSwitching(false)
+    if (!connected) toast.error("Backend belum dapat dijangkau", { description: "Data tetap aman di perangkat dan retry akan berjalan otomatis." })
   }
 
   return (
@@ -91,7 +91,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <NavLink to="/settings" className="flex h-8 items-center gap-2 rounded-md px-2.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"><IconSettings className="size-4" /> Pengaturan</NavLink>
           <div className="mt-2 flex items-center gap-2 rounded-md border bg-card/70 p-2">
             <div className="grid size-7 place-items-center rounded-full bg-zinc-700 text-[10px] font-semibold">RA</div>
-            <div className="min-w-0 flex-1"><div className="truncate text-xs font-medium">Rani A.</div><div className="text-[10px] text-muted-foreground">Kasir · Shift 02</div></div>
+            <div className="min-w-0 flex-1"><div className="truncate text-xs font-medium">{session?.operator.name ?? "Operator"}</div><div className="text-[10px] text-muted-foreground">{session?.operator.role === "ADMIN" ? "Administrator" : "Kasir"} · Shift 02</div></div>
             <span className="size-1.5 rounded-full bg-emerald-400" />
           </div>
         </div>

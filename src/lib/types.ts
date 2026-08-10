@@ -60,13 +60,14 @@ export type OutboxEntry = {
   createdAt: string
   lastAttemptAt?: string
   lastError?: string
+  nextRetryAt?: string
 }
 
 export type SyncAttempt = {
   id?: number
   transactionId: string
   invoiceNumber: string
-  result: "ACCEPTED" | "ALREADY_PROCESSED" | "RETRYABLE_ERROR"
+  result: "ACCEPTED" | "ALREADY_PROCESSED" | "REJECTED_PERMANENT" | "RETRYABLE_ERROR"
   createdAt: string
   durationMs: number
 }
@@ -77,3 +78,29 @@ export type Setting = {
 }
 
 export type ConnectionState = "ONLINE" | "OFFLINE" | "RECONNECTING"
+
+export type DeviceIdentity = {
+  id: string
+  name: string
+  createdAt: string
+  registeredAt?: string
+}
+
+export type AuthSession = {
+  token: string
+  merchantId: string
+  operator: {
+    id: string
+    name: string
+    role: "OPERATOR" | "ADMIN" | "OWNER"
+  }
+  expiresAt: string
+}
+
+export type CartDraft = {
+  id: "active"
+  cart: Record<string, number>
+  transactionStatus: "PENDING"
+  createdAt: string
+  updatedAt: string
+}

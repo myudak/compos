@@ -3,6 +3,7 @@ import { IconCash, IconCheck, IconChevronRight, IconCoffee, IconDeviceMobile, Ic
 import { useLiveQuery } from "dexie-react-hooks"
 import { QRCodeSVG } from "qrcode.react"
 import { toast } from "sonner"
+import { v7 as uuidv7 } from "uuid"
 
 import { SettlementBadge, SyncBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
@@ -10,7 +11,7 @@ import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { db, DEVICE_ID, MERCHANT_ID, OPERATOR_ID } from "@/lib/db"
+import { db, getAuthSession, getOrCreateDeviceIdentity } from "@/lib/db"
 import { formatCurrency, paymentLabels } from "@/lib/format"
 import { processOutbox } from "@/lib/sync-engine"
 import type { LocalTransaction, PaymentMethod, Product } from "@/lib/types"
@@ -170,15 +171,20 @@ export function CheckoutPage() {
   const provisional = transactions.filter((transaction) => transaction.settlementStatus === "PROVISIONAL").length
 
   async function confirmSale(method: PaymentMethod, amountReceived?: number, reference?: string) {
-    const id = crypto.randomUUID()
+    const [session, device] = await Promise.all([getAuthSession(), getOrCreateDeviceIdentity()])
+    if (!session) {
+      toast.error("Session operator tidak tersedia")
+      return
+    }
+    const id = uuidv7()
     const createdAt = new Date().toISOString()
     const transaction: LocalTransaction = {
       id,
       invoiceNumber: `OPS-${Date.now().toString(36).slice(-6).toUpperCase()}`,
-      merchantId: MERCHANT_ID,
-      deviceId: DEVICE_ID,
-      operatorId: OPERATOR_ID,
-      operatorName: "Rani",
+      merchantId: session.merchantId,
+      deviceId: device.id,
+      operatorId: session.operator.id,
+      operatorName: session.operator.name,
       items: cartItems.map(({ product, quantity }) => ({ productId: product.id, name: product.name, quantity, unitPrice: product.price, subtotal: product.price * quantity })),
       subtotal,
       discount: 0,
@@ -195,12 +201,13 @@ export function CheckoutPage() {
       retryCount: 0,
     }
 
-    await db.transaction("rw", [db.transactions, db.outbox, db.products], async () => {
+    await db.transaction("rw", [db.transactions, db.outbox, db.products, db.drafts], async () => {
       await db.transactions.add(transaction)
       await db.outbox.add({ id: `outbox-${id}`, transactionId: id, operation: "UPSERT_TRANSACTION", payloadVersion: 1, status: "PENDING", retryCount: 0, createdAt })
       for (const { product, quantity } of cartItems) {
         await db.products.update(product.id, { stock: product.stock - quantity })
       }
+      await db.drafts.delete("active")
     })
 
     setPaymentOpen(false)
