@@ -5,9 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev:web": "vite",
+    "dev:api": "pnpm --filter @operator/api dev",
+    "build": "pnpm build:web && pnpm --filter @operator/api build",
+    "build:web": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @operator/api db:migrate",
+    "db:seed": "pnpm --filter @operator/api db:seed",
+    "worker": "pnpm --filter @operator/api worker",
+    "test": "pnpm --filter @operator/api test"
   },
   "dependencies": {
     "@tabler/icons-react": "^3.34.1",
