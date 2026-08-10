@@ -6,6 +6,8 @@ import { processBackendOutbox } from "../worker.js"
 const baseUrl = process.env.API_URL ?? "http://localhost:3001"
 const deviceA = `DVC-FAILURE-A-${randomUUID()}`
 const deviceB = `DVC-FAILURE-B-${randomUUID()}`
+const testProductId = `prd-failure-${randomUUID()}`
+const transactionIds = new Set<string>()
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${baseUrl}${path}`, { ...init, headers: { ...(init.body ? { "content-type": "application/json" } : {}), ...init.headers } })
@@ -23,8 +25,10 @@ async function login(deviceId: string, operatorCode = "RANI", pin = "1234") {
 }
 
 function transaction(operatorId: string, suffix: string) {
+  const transactionId = `019-${suffix}-${randomUUID()}`
+  transactionIds.add(transactionId)
   return {
-    transactionId: `019-${suffix}-${randomUUID()}`,
+    transactionId,
     invoiceNumber: `OPS-${randomUUID().slice(0, 8).toUpperCase()}`,
     operatorId,
     transactionStatus: "CONFIRMED",
@@ -35,7 +39,7 @@ function transaction(operatorId: string, suffix: string) {
     tax: 0,
     total: 22_000,
     createdAtDevice: new Date().toISOString(),
-    items: [{ productId: "prd-aren", name: "Kopi Susu Aren", quantity: 1, unitPrice: 22_000, subtotal: 22_000 }],
+    items: [{ productId: testProductId, name: "Failure Scenario Coffee", quantity: 1, unitPrice: 22_000, subtotal: 22_000 }],
   }
 }
 
@@ -51,6 +55,40 @@ function expectStatus(actual: string | undefined, expected: string, scenario: st
   if (actual !== expected) throw new Error(`${scenario}: expected ${expected}, received ${actual}`)
 }
 
+async function cleanupFixtures() {
+  const ids = [...transactionIds]
+  const client = await pool.connect()
+  try {
+    await client.query("BEGIN")
+    await client.query(
+      `DELETE FROM backend_outbox_events WHERE merchant_id = 'MRC-KEDAI-NUSA'
+       AND (aggregate_id = ANY($1::text[]) OR aggregate_id IN (SELECT id FROM corrections WHERE merchant_id = 'MRC-KEDAI-NUSA' AND transaction_id = ANY($1::text[])))`,
+      [ids],
+    )
+    await client.query("DELETE FROM corrections WHERE merchant_id = 'MRC-KEDAI-NUSA' AND transaction_id = ANY($1::text[])", [ids])
+    await client.query("DELETE FROM inventory_discrepancies WHERE merchant_id = 'MRC-KEDAI-NUSA' AND product_id = $1", [testProductId])
+    await client.query("DELETE FROM inventory_movements WHERE merchant_id = 'MRC-KEDAI-NUSA' AND transaction_id = ANY($1::text[])", [ids])
+    await client.query("DELETE FROM transaction_events WHERE merchant_id = 'MRC-KEDAI-NUSA' AND transaction_id = ANY($1::text[])", [ids])
+    await client.query("DELETE FROM transaction_items WHERE merchant_id = 'MRC-KEDAI-NUSA' AND transaction_id = ANY($1::text[])", [ids])
+    await client.query("DELETE FROM transactions WHERE merchant_id = 'MRC-KEDAI-NUSA' AND id = ANY($1::text[])", [ids])
+    await client.query("DELETE FROM devices WHERE merchant_id = 'MRC-KEDAI-NUSA' AND id = ANY($1::text[])", [[deviceA, deviceB]])
+    await client.query("DELETE FROM products WHERE merchant_id = 'MRC-KEDAI-NUSA' AND id = $1", [testProductId])
+    await client.query("COMMIT")
+  } catch (error) {
+    await client.query("ROLLBACK")
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+async function run() {
+  await pool.query(
+    `INSERT INTO products (id, merchant_id, sku, name, description, category, price, stock_projection, min_stock, accent)
+     VALUES ($1, 'MRC-KEDAI-NUSA', $2, 'Failure Scenario Coffee', 'Temporary integration fixture', 'Kopi', 22000, 2, 0, '#06b6d4')`,
+    [testProductId, `TST-${randomUUID().slice(0, 8)}`],
+  )
+  try {
 await Promise.all([register(deviceA), register(deviceB)])
 const [sessionA, sessionB] = await Promise.all([login(deviceA), login(deviceB)])
 
@@ -100,8 +138,8 @@ if (correction.originalTransactionMutated !== false) throw new Error("correction
 
 // Drain downstream work and prove a negative projection is reconciled instead of rejecting sales.
 while (await processBackendOutbox(pool, 100)) { /* drain until no unclaimed event remains */ }
-const discrepancyList = await request<{ discrepancies: Array<{ id: string; status: string }> }>("/v1/inventory/discrepancies", { headers: { authorization: `Bearer ${admin.token}` } })
-const openDiscrepancy = discrepancyList.discrepancies.find((entry) => entry.status === "OPEN")
+const discrepancyList = await request<{ discrepancies: Array<{ id: string; product_id: string; status: string }> }>("/v1/inventory/discrepancies", { headers: { authorization: `Bearer ${admin.token}` } })
+const openDiscrepancy = discrepancyList.discrepancies.find((entry) => entry.product_id === testProductId && entry.status === "OPEN")
 if (!openDiscrepancy) throw new Error("expected an open inventory discrepancy after negative projection")
 const discrepancyResolution = await request<{ status: string }>(`/v1/inventory/discrepancies/${openDiscrepancy.id}/resolve`, {
   method: "POST",
@@ -130,4 +168,13 @@ console.log(JSON.stringify({
   inventoryDiscrepancy: "RESOLVED after worker projection",
   revokedDevice: "HTTP 403",
 }, null, 2))
-await pool.end()
+  } finally {
+    await cleanupFixtures()
+  }
+}
+
+try {
+  await run()
+} finally {
+  await pool.end()
+}
