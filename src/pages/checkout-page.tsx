@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { db, getAuthSession, getOrCreateDeviceIdentity } from "@/lib/db"
+import { commitLocalSale } from "@/lib/checkout-service"
 import { formatCurrency, paymentLabels } from "@/lib/format"
 import { processOutbox } from "@/lib/sync-engine"
 import type { LocalTransaction, PaymentMethod, Product } from "@/lib/types"
@@ -226,14 +227,7 @@ export function CheckoutPage() {
       retryCount: 0,
     }
 
-    await db.transaction("rw", [db.transactions, db.outbox, db.products, db.drafts], async () => {
-      await db.transactions.add(transaction)
-      await db.outbox.add({ id: `outbox-${id}`, transactionId: id, operation: "UPSERT_TRANSACTION", payloadVersion: 1, status: "PENDING", retryCount: 0, createdAt })
-      for (const { product, quantity } of cartItems) {
-        await db.products.update(product.id, { stock: product.stock - quantity })
-      }
-      await db.drafts.delete("active")
-    })
+    await commitLocalSale(transaction)
 
     setPaymentOpen(false)
     setReceipt(transaction)

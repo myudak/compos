@@ -4,11 +4,12 @@ import type { FastifyInstance } from "fastify"
 import { requireAuth } from "../auth.js"
 import { syncEnvelopeSchema, syncTransactionSchema, type SyncResult } from "../contracts.js"
 import type { DatabasePool } from "../db.js"
-import { incrementMetric } from "../metrics.js"
+import { incrementMetric, observeMetric } from "../metrics.js"
 import { acceptTransaction } from "../services/transaction-service.js"
 
 export function registerSyncRoutes(app: FastifyInstance, pool: DatabasePool) {
   app.post("/v1/sync/transactions", async (request, reply) => {
+    const startedAt = performance.now()
     const identity = await requireAuth(request, ["OPERATOR", "ADMIN"])
     const requestId = String(request.id || randomUUID())
     const envelope = syncEnvelopeSchema.parse(request.body)
@@ -18,6 +19,7 @@ export function registerSyncRoutes(app: FastifyInstance, pool: DatabasePool) {
     if (!device.rows[0] || device.rows[0].revoked_at) return reply.code(403).send({ code: "DEVICE_REVOKED_OR_UNKNOWN" })
 
     incrementMetric("sync_requests_total")
+    observeMetric("sync_batch_size", envelope.transactions.length)
     const results: SyncResult[] = []
     for (const candidate of envelope.transactions) {
       const parsed = syncTransactionSchema.safeParse(candidate)
@@ -38,6 +40,17 @@ export function registerSyncRoutes(app: FastifyInstance, pool: DatabasePool) {
         results.push({ transactionId: parsed.data.transactionId, status: "RETRYABLE_ERROR", reason: "TEMPORARY_BACKEND_FAILURE" })
       }
     }
+    const latencyMs = Math.round((performance.now() - startedAt) * 100) / 100
+    observeMetric("sync_latency_ms", latencyMs)
+    request.log.info({
+      requestId,
+      batchId: envelope.batchId,
+      merchantId: identity.merchantId,
+      deviceId: envelope.deviceId,
+      batchSize: envelope.transactions.length,
+      results: results.map((result) => ({ transactionId: result.transactionId, result: result.status })),
+      latencyMs,
+    }, "sync batch processed")
     return { requestId, batchId: envelope.batchId, results }
   })
 }

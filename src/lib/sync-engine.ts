@@ -162,19 +162,29 @@ export async function refreshConnectivity() {
 export function startSyncScheduler() {
   schedulerCleanup?.()
   let stopped = false
+  const reconnectTimers = new Set<number>()
   const syncIfReachable = async () => {
     if (stopped) return
     if (await refreshConnectivity()) await processOutbox()
   }
-  const handleOnline = () => void syncIfReachable()
+  const scheduleWithJitter = () => {
+    const timer = window.setTimeout(() => {
+      reconnectTimers.delete(timer)
+      void syncIfReachable()
+    }, Math.round(Math.random() * 1_500))
+    reconnectTimers.add(timer)
+  }
+  const handleOnline = () => scheduleWithJitter()
   const handleOffline = () => usePosStore.getState().setConnection("OFFLINE")
   window.addEventListener("online", handleOnline)
   window.addEventListener("offline", handleOffline)
   const timer = window.setInterval(() => void syncIfReachable(), 15_000)
-  void syncIfReachable()
+  scheduleWithJitter()
   schedulerCleanup = () => {
     stopped = true
     window.clearInterval(timer)
+    reconnectTimers.forEach((reconnectTimer) => window.clearTimeout(reconnectTimer))
+    reconnectTimers.clear()
     window.removeEventListener("online", handleOnline)
     window.removeEventListener("offline", handleOffline)
   }

@@ -6,16 +6,40 @@ type MetricName =
   | "corrections_created_total"
   | "inventory_discrepancy_total"
 
+type ObservationName =
+  | "sync_batch_size"
+  | "sync_latency_ms"
+  | "database_transaction_latency_ms"
+
+type Observation = { count: number; sum: number; max: number }
+
 const counters = new Map<MetricName, number>()
+const observations = new Map<ObservationName, Observation>()
 
 export function incrementMetric(name: MetricName, amount = 1) {
   counters.set(name, (counters.get(name) ?? 0) + amount)
 }
 
-export function metricsSnapshot() {
-  return Object.fromEntries(counters.entries())
+export function observeMetric(name: ObservationName, value: number) {
+  const current = observations.get(name) ?? { count: 0, sum: 0, max: 0 }
+  observations.set(name, { count: current.count + 1, sum: current.sum + value, max: Math.max(current.max, value) })
 }
 
-export function metricsAsPrometheus() {
-  return ([...counters.entries()].map(([name, value]) => `# TYPE ${name} counter\n${name} ${value}`).join("\n") || "# no metrics recorded") + "\n"
+export function metricsSnapshot(gauges: Record<string, number> = {}) {
+  return {
+    counters: Object.fromEntries(counters.entries()),
+    observations: Object.fromEntries(observations.entries()),
+    gauges,
+  }
+}
+
+export function metricsAsPrometheus(gauges: Record<string, number> = {}) {
+  const lines = [...counters.entries()].flatMap(([name, value]) => [`# TYPE ${name} counter`, `${name} ${value}`])
+  for (const [name, value] of Object.entries(gauges)) {
+    lines.push(`# TYPE ${name} gauge`, `${name} ${value}`)
+  }
+  for (const [name, value] of observations.entries()) {
+    lines.push(`# TYPE ${name} summary`, `${name}_count ${value.count}`, `${name}_sum ${value.sum}`, `${name}_max ${value.max}`)
+  }
+  return `${lines.join("\n") || "# no metrics recorded"}\n`
 }

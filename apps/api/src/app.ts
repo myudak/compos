@@ -11,6 +11,7 @@ import { registerBootstrapRoutes } from "./routes/bootstrap.js"
 import { registerCorrectionRoutes } from "./routes/corrections.js"
 import { registerDeviceRoutes } from "./routes/devices.js"
 import { registerDiscrepancyRoutes } from "./routes/discrepancies.js"
+import { registerProductRoutes } from "./routes/products.js"
 import { registerSyncRoutes } from "./routes/sync.js"
 import { registerTransactionRoutes } from "./routes/transactions.js"
 
@@ -27,8 +28,20 @@ export async function buildApp(pool: DatabasePool = defaultPool) {
     }
   })
   app.get("/metrics", async (request, reply) => {
-    if (request.headers.accept?.includes("text/plain")) return reply.type("text/plain; version=0.0.4").send(metricsAsPrometheus())
-    return metricsSnapshot()
+    const runtime = await pool.query<{ pending_outbox: string; outbox_lag_seconds: string | null; open_discrepancies: string }>(
+      `SELECT
+        (SELECT count(*) FROM backend_outbox_events WHERE processed_at IS NULL)::text AS pending_outbox,
+        (SELECT extract(epoch FROM now() - min(created_at)) FROM backend_outbox_events WHERE processed_at IS NULL)::text AS outbox_lag_seconds,
+        (SELECT count(*) FROM inventory_discrepancies WHERE status = 'OPEN')::text AS open_discrepancies`,
+    )
+    const row = runtime.rows[0]
+    const gauges = {
+      backend_outbox_pending: Number(row?.pending_outbox ?? 0),
+      outbox_lag_seconds: Number(row?.outbox_lag_seconds ?? 0),
+      inventory_discrepancy_open: Number(row?.open_discrepancies ?? 0),
+    }
+    if (request.headers.accept?.includes("text/plain")) return reply.type("text/plain; version=0.0.4").send(metricsAsPrometheus(gauges))
+    return metricsSnapshot(gauges)
   })
 
   registerDeviceRoutes(app, pool)
@@ -38,6 +51,7 @@ export async function buildApp(pool: DatabasePool = defaultPool) {
   registerTransactionRoutes(app, pool)
   registerCorrectionRoutes(app, pool)
   registerDiscrepancyRoutes(app, pool)
+  registerProductRoutes(app, pool)
 
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof ZodError) return reply.code(400).send({ code: "INVALID_REQUEST", issues: error.issues })

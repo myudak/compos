@@ -3,7 +3,7 @@ import type pg from "pg"
 
 import type { AuthIdentity } from "../auth.js"
 import type { DatabasePool } from "../db.js"
-import { incrementMetric } from "../metrics.js"
+import { incrementMetric, observeMetric } from "../metrics.js"
 import type { SyncResult, SyncTransaction } from "../contracts.js"
 
 function payloadHash(transaction: SyncTransaction) {
@@ -19,6 +19,7 @@ async function findExisting(client: pg.PoolClient, merchantId: string, transacti
 }
 
 export async function acceptTransaction(pool: DatabasePool, identity: AuthIdentity, deviceId: string, transaction: SyncTransaction): Promise<SyncResult> {
+  const startedAt = performance.now()
   const hash = payloadHash(transaction)
   const client = await pool.connect()
   try {
@@ -96,5 +97,6 @@ export async function acceptTransaction(pool: DatabasePool, identity: AuthIdenti
     throw error
   } finally {
     client.release()
+    observeMetric("database_transaction_latency_ms", Math.round((performance.now() - startedAt) * 100) / 100)
   }
 }
