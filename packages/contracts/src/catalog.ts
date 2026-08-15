@@ -31,6 +31,7 @@ export const productPatchSchema = productInputSchema
   .refine((value) => Object.keys(value).length > 0, "At least one product field is required")
 
 export const productListResponseSchema = z.object({ products: z.array(productSchema) })
+export const productMutationResponseSchema = z.object({ product: productSchema })
 
 export type Product = z.infer<typeof productSchema>
 export type ProductInput = z.infer<typeof productInputSchema>

@@ -11,6 +11,7 @@ import {
   IconScale,
   IconSettings,
   IconUsers,
+  IconTags,
   IconWifiOff,
 } from "@tabler/icons-react"
 import { NavLink, useLocation } from "react-router-dom"
@@ -32,6 +33,7 @@ const navItems = [
   { label: "Sync & Data", href: "/sync", icon: IconArrowsExchange },
   { label: "Reconciliation", href: "/reconciliation", icon: IconScale, adminOnly: true },
   { label: "Akun & Device", href: "/admin/users", icon: IconUsers, adminOnly: true },
+  { label: "Kelola Katalog", href: "/admin/catalog", icon: IconTags, adminOnly: true },
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {

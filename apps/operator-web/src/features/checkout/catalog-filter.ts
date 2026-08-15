@@ -1,2 +1,1 @@
-export const catalogCategories = ["Semua", "Kopi", "Non Kopi", "Makanan"] as const
-export type CatalogCategory = (typeof catalogCategories)[number]
+export type CatalogCategory = string

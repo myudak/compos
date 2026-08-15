@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { IconAlertTriangle, IconBox, IconCoffee, IconSearch } from "@tabler/icons-react"
+import { toast } from "sonner"
 
 import { PageHeader } from "@/shared/ui/page-header"
 import { Badge } from "@/shared/ui/components/badge"
@@ -7,12 +8,14 @@ import { Button } from "@/shared/ui/components/button"
 import { Card } from "@/shared/ui/components/card"
 import { Input } from "@/shared/ui/components/input"
 import { useCatalogProducts } from "@/features/catalog/catalog-queries"
+import { refreshActiveCatalog } from "@/features/catalog/catalog-refresh"
 import { formatCurrency } from "@/shared/lib/format"
 import { cn } from "@/shared/lib/utils"
 
 export function ProductsPage() {
   const products = useCatalogProducts()
   const [query, setQuery] = useState("")
+  const [refreshing, setRefreshing] = useState(false)
   const filtered = products.filter((product) =>
     `${product.name} ${product.sku} ${product.category}`
       .toLowerCase()
@@ -20,13 +23,30 @@ export function ProductsPage() {
   )
   const lowStock = products.filter((product) => product.stock <= 5).length
 
+  async function refresh() {
+    setRefreshing(true)
+    try {
+      const refreshed = await refreshActiveCatalog()
+      if (refreshed) toast.success("Katalog lokal diperbarui")
+      else toast.error("Login online diperlukan untuk refresh katalog")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Katalog gagal diperbarui")
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   return (
     <div>
       <PageHeader
         eyebrow="Offline catalog snapshot"
         title="Produk & stok lokal"
         description="Katalog ini tersimpan di perangkat dan tetap dapat dibaca tanpa jaringan. Stok adalah proyeksi eventual, bukan reservasi real-time."
-        actions={<Button variant="outline">Tarik katalog terbaru</Button>}
+        actions={
+          <Button variant="outline" disabled={refreshing} onClick={() => void refresh()}>
+            {refreshing ? "Menarik katalog…" : "Tarik katalog terbaru"}
+          </Button>
+        }
       />
       <div className="grid gap-px border-b bg-border sm:grid-cols-3">
         <div className="bg-background px-4 py-3 sm:px-6">

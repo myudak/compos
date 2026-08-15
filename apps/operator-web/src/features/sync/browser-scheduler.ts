@@ -3,14 +3,17 @@ import type { ConnectionState } from "@/infrastructure/persistence/models"
 type SchedulerDependencies = {
   probe: (signal: AbortSignal) => Promise<unknown>
   sync: () => Promise<number>
+  refreshCatalog: () => Promise<unknown>
   forcedOffline: () => boolean
   setConnection: (state: ConnectionState) => void
   random: () => number
 }
 
 export function createBrowserSyncScheduler(dependencies: SchedulerDependencies) {
+  let wasReachable = false
   async function refreshConnectivity() {
     if (dependencies.forcedOffline() || !navigator.onLine) {
+      wasReachable = false
       dependencies.setConnection("OFFLINE")
       return false
     }
@@ -20,8 +23,13 @@ export function createBrowserSyncScheduler(dependencies: SchedulerDependencies) 
     try {
       await dependencies.probe(controller.signal)
       dependencies.setConnection("ONLINE")
+      if (!wasReachable) {
+        wasReachable = true
+        await dependencies.refreshCatalog().catch(() => undefined)
+      }
       return true
     } catch {
+      wasReachable = false
       dependencies.setConnection("OFFLINE")
       return false
     } finally {

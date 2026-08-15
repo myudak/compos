@@ -1,6 +1,6 @@
 import { IconCoffee, IconGlass, IconSearch, IconShoppingBag } from "@tabler/icons-react"
 
-import { catalogCategories, type CatalogCategory } from "@/features/checkout/catalog-filter"
+import type { CatalogCategory } from "@/features/checkout/catalog-filter"
 import type { Product } from "@/infrastructure/persistence/models"
 import { formatCurrency } from "@/shared/lib/format"
 import { cn } from "@/shared/lib/utils"
@@ -17,6 +17,7 @@ type CatalogGridProps = {
 }
 
 export function CatalogGrid(props: CatalogGridProps) {
+  const catalogCategories = ["Semua", ...new Set(props.products.map((product) => product.category))]
   const filtered = props.products.filter(
     (product) =>
       (props.category === "Semua" || product.category === props.category) &&

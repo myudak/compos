@@ -46,6 +46,11 @@ const AdminUsersPage = lazy(() =>
     default: module.AdminUsersPage,
   })),
 )
+const AdminCatalogPage = lazy(() =>
+  import("@/features/admin-catalog/admin-catalog-page").then((module) => ({
+    default: module.AdminCatalogPage,
+  })),
+)
 
 function RouteFallback() {
   return (
@@ -124,6 +129,16 @@ export default function App() {
               element={
                 session?.operator.role === "ADMIN" ? (
                   <AdminUsersPage />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route
+              path="/admin/catalog"
+              element={
+                session?.operator.role === "ADMIN" ? (
+                  <AdminCatalogPage />
                 ) : (
                   <Navigate to="/" replace />
                 )

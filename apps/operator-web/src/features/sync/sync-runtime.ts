@@ -1,6 +1,7 @@
 import { v7 as uuidv7 } from "uuid"
 
 import { useUiStore } from "@/app/ui-store"
+import { refreshActiveCatalog } from "@/features/catalog/catalog-refresh"
 import { probeBackend, sendTransactionBatch } from "@/infrastructure/api/api-client"
 import { getOrCreateDeviceIdentity } from "@/infrastructure/persistence/device-repository"
 import {
@@ -34,6 +35,7 @@ export const syncService = new SyncService({
 const scheduler = createBrowserSyncScheduler({
   probe: probeBackend,
   sync: () => syncService.run(),
+  refreshCatalog: refreshActiveCatalog,
   forcedOffline: () => useUiStore.getState().forcedOffline,
   setConnection: (connection) => useUiStore.getState().setConnection(connection),
   random,
