@@ -14,7 +14,15 @@ const validTransaction = {
   tax: 0,
   total: 22_000,
   createdAtDevice: new Date().toISOString(),
-  items: [{ productId: "prd-aren", name: "Kopi Susu Aren", quantity: 1, unitPrice: 22_000, subtotal: 22_000 }],
+  items: [
+    {
+      productId: "prd-aren",
+      name: "Kopi Susu Aren",
+      quantity: 1,
+      unitPrice: 22_000,
+      subtotal: 22_000,
+    },
+  ],
 }
 
 describe("sync contracts", () => {
@@ -23,14 +31,31 @@ describe("sync contracts", () => {
   })
 
   it("rejects mismatched totals and false payment verification claims", () => {
-    const invalid = { ...validTransaction, total: 21_000, paymentMethod: "STATIC_QRIS", paymentVerificationType: "SYSTEM_VERIFIABLE" }
+    const invalid = {
+      ...validTransaction,
+      total: 21_000,
+      paymentMethod: "STATIC_QRIS",
+      paymentVerificationType: "SYSTEM_VERIFIABLE",
+    }
     const result = syncTransactionSchema.safeParse(invalid)
     expect(result.success).toBe(false)
-    if (!result.success) expect(result.error.issues.map((issue) => issue.message)).toEqual(expect.arrayContaining(["Total calculation is invalid", "QRIS and Transfer must be operator-asserted"]))
+    if (!result.success)
+      expect(result.error.issues.map((issue) => issue.message)).toEqual(
+        expect.arrayContaining([
+          "Total calculation is invalid",
+          "QRIS and Transfer must be operator-asserted",
+        ]),
+      )
   })
 
   it("rejects batches larger than the client/server bound", () => {
-    const result = syncEnvelopeSchema.safeParse({ merchantId: "MRC", deviceId: "DVC", batchId: "batch-1234", transactions: Array.from({ length: 26 }, () => validTransaction) })
+    const result = syncEnvelopeSchema.safeParse({
+      schemaVersion: 1,
+      merchantId: "MRC",
+      deviceId: "DEVICE-123",
+      batchId: "batch-1234",
+      transactions: Array.from({ length: 26 }, () => validTransaction),
+    })
     expect(result.success).toBe(false)
   })
 })

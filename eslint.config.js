@@ -5,7 +5,16 @@ import reactRefresh from "eslint-plugin-react-refresh"
 import tseslint from "typescript-eslint"
 
 export default tseslint.config(
-  { ignores: ["dist", "apps/api/dist"] },
+  {
+    ignores: [
+      "**/dist/**",
+      "**/coverage/**",
+      "**/playwright-report/**",
+      "**/test-results/**",
+      ".agents/**",
+      ".claude/**",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -14,10 +23,13 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      "max-lines": ["error", { max: 350, skipBlankLines: true, skipComments: true }],
+      "max-lines-per-function": ["warn", { max: 125, skipBlankLines: true, skipComments: true }],
+      complexity: ["warn", 25],
     },
   },
   {
-    files: ["apps/api/**/*.ts"],
+    files: ["apps/api/**/*.ts", "packages/contracts/**/*.ts"],
     languageOptions: { globals: globals.node },
   },
 )

@@ -142,7 +142,7 @@ export async function sendTransactionBatch(session: AuthSession, device: DeviceI
   }
   const response = await apiRequest<{ results: SyncApiResult[] }>("/v1/sync/transactions", {
     method: "POST",
-    body: JSON.stringify({ merchantId: session.merchantId, deviceId: device.id, batchId, transactions: transactions.map(transactionPayload) }),
+    body: JSON.stringify({ schemaVersion: 1, merchantId: session.merchantId, deviceId: device.id, batchId, transactions: transactions.map(transactionPayload) }),
   }, session.token)
   return response.results
 }

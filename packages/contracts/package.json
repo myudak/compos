@@ -1,0 +1,21 @@
+{
+  "name": "@operator/contracts",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "zod": "^4.0.17"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
