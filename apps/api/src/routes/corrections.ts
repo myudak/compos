@@ -14,7 +14,7 @@ const correctionSchema = z.object({
 export function registerCorrectionRoutes(app: FastifyInstance, pool: DatabasePool) {
   const service = new ReconciliationService(pool)
   app.post("/v1/admin/transactions/:transactionId/corrections", async (request, reply) => {
-    const identity = await requireAuth(request, ["ADMIN"])
+    const identity = await requireAuth(request, ["ADMIN"], pool)
     const { transactionId } = z.object({ transactionId: z.string() }).parse(request.params)
     const correction = await service.createCorrection(
       identity,
@@ -25,7 +25,7 @@ export function registerCorrectionRoutes(app: FastifyInstance, pool: DatabasePoo
   })
 
   app.get("/v1/admin/corrections", async (request) => {
-    const identity = await requireAuth(request, ["ADMIN"])
+    const identity = await requireAuth(request, ["ADMIN"], pool)
     return { corrections: await service.listCorrections(identity.merchantId) }
   })
 }

@@ -3,7 +3,9 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { useUiStore } from "@/app/ui-store"
-import { useDeviceIdentity } from "@/features/auth/session-queries"
+import { logoutOnline } from "@/features/auth/auth-api"
+import { useCurrentSession, useDeviceIdentity } from "@/features/auth/session-queries"
+import { draftPersistence } from "@/infrastructure/persistence/draft-repository"
 import { clearAuthSession } from "@/infrastructure/persistence/session-repository"
 import { PageHeader } from "@/shared/ui/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/components/card"
@@ -11,6 +13,7 @@ import { Button } from "@/shared/ui/components/button"
 
 export function SettingsPage() {
   const device = useDeviceIdentity()
+  const session = useCurrentSession()
   const [loggingOut, setLoggingOut] = useState(false)
   async function logout() {
     if (
@@ -20,6 +23,16 @@ export function SettingsPage() {
     )
       return
     setLoggingOut(true)
+    if (session) {
+      try {
+        await logoutOnline(session)
+      } catch {
+        toast.message("Backend tidak terjangkau", {
+          description: "Sesi lokal tetap ditutup; data antrean tidak dihapus.",
+        })
+      }
+    }
+    await draftPersistence.discardPending()
     useUiStore.getState().clearCart()
     await clearAuthSession()
     toast.success("Sesi lokal ditutup")

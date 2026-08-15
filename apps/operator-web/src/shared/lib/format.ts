@@ -17,6 +17,10 @@ export function formatTransactionDate(value: string) {
     : format(date, "dd MMM, HH:mm", { locale: id })
 }
 
+export function formatDateTime(value: string) {
+  return format(new Date(value), "dd MMM yyyy, HH:mm", { locale: id })
+}
+
 export function fromNow(value?: string) {
   if (!value) return "Belum pernah"
   return `${formatDistanceToNowStrict(new Date(value), { locale: id })} lalu`

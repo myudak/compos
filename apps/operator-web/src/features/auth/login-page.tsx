@@ -12,7 +12,7 @@ import {
 import { Button } from "@/shared/ui/components/button"
 import { Card } from "@/shared/ui/components/card"
 import { Input } from "@/shared/ui/components/input"
-import { activateAndLogin, bootstrapLocalData } from "@/infrastructure/api/api-client"
+import { activateAndLogin, bootstrapLocalData } from "@/features/auth/auth-api"
 import type { AuthSession, DeviceIdentity } from "@/infrastructure/persistence/models"
 
 export function LoginPage({

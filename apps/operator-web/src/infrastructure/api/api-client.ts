@@ -1,32 +1,11 @@
-import { replaceCatalog } from "@/infrastructure/persistence/catalog-repository"
-import { saveDeviceIdentity } from "@/infrastructure/persistence/device-repository"
+import { ApiError, API_URL } from "@/infrastructure/api/http-client"
 import type {
   AuthSession,
   DeviceIdentity,
   LocalTransaction,
-  Product,
 } from "@/infrastructure/persistence/models"
-import {
-  offlineLeaseExpiresAt,
-  saveAuthSession,
-} from "@/infrastructure/persistence/session-repository"
-import { writeSetting } from "@/infrastructure/persistence/settings-repository"
 
-const API_URL =
-  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ??
-  "http://localhost:3001"
 export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true"
-
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    readonly code: string,
-    readonly retryable: boolean,
-  ) {
-    super(message)
-  }
-}
 
 async function apiRequest<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
   let response: Response
@@ -58,87 +37,8 @@ async function apiRequest<T>(path: string, init: RequestInit = {}, token?: strin
 export async function probeBackend(signal?: AbortSignal) {
   const response = await fetch(`${API_URL}/health`, { signal, cache: "no-store" })
   if (!response.ok)
-    throw new ApiError("Backend belum siap", response.status, "BACKEND_UNHEALTHY", true)
+    throw new ApiError("Backend belum siap", response.status, "INVALID_RESPONSE", true)
   return response.json() as Promise<{ status: string; database: string }>
-}
-
-export async function activateAndLogin(input: {
-  merchantCode: string
-  operatorCode: string
-  pin: string
-  activationCode: string
-  device: DeviceIdentity
-}): Promise<AuthSession> {
-  await apiRequest("/v1/devices/register", {
-    method: "POST",
-    body: JSON.stringify({
-      merchantCode: input.merchantCode,
-      activationCode: input.activationCode,
-      deviceId: input.device.id,
-      deviceName: input.device.name,
-    }),
-  })
-  const result = await apiRequest<{
-    token: string
-    expiresInSeconds: number
-    merchantId: string
-    operator: AuthSession["operator"]
-  }>("/v1/auth/login", {
-    method: "POST",
-    body: JSON.stringify({
-      merchantCode: input.merchantCode,
-      operatorCode: input.operatorCode,
-      pin: input.pin,
-      deviceId: input.device.id,
-    }),
-  })
-  const session: AuthSession = {
-    token: result.token,
-    merchantId: result.merchantId,
-    operator: result.operator,
-    expiresAt: new Date(Date.now() + result.expiresInSeconds * 1000).toISOString(),
-    offlineLeaseExpiresAt: offlineLeaseExpiresAt(),
-  }
-  await saveAuthSession(session)
-  await saveDeviceIdentity({ ...input.device, registeredAt: new Date().toISOString() })
-  return session
-}
-
-type BootstrapProduct = {
-  id: string
-  sku: string
-  name: string
-  description: string
-  category: Product["category"]
-  price: number
-  stock: number
-  lowStockThreshold: number
-  accent: string
-  active: boolean
-  updatedAt: string
-}
-
-export async function bootstrapLocalData(session: AuthSession, device: DeviceIdentity) {
-  const result = await apiRequest<{
-    merchant: { id: string; name: string }
-    products: BootstrapProduct[]
-  }>(`/v1/bootstrap?deviceId=${encodeURIComponent(device.id)}`, {}, session.token)
-  const products: Product[] = result.products.map((product) => ({
-    id: product.id,
-    sku: product.sku,
-    name: product.name,
-    description: product.description,
-    category: product.category,
-    price: product.price,
-    stock: product.stock,
-    accent: product.accent,
-    active: product.active,
-    lowStockThreshold: product.lowStockThreshold,
-    updatedAt: product.updatedAt,
-  }))
-  await replaceCatalog(products)
-  await writeSetting("merchantProfile", JSON.stringify(result.merchant))
-  return products
 }
 
 export type SyncApiResult = {
@@ -285,4 +185,4 @@ export async function resolveInventoryDiscrepancy(
   )
 }
 
-export { API_URL }
+export { ApiError, API_URL }

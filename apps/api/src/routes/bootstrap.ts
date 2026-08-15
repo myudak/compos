@@ -10,7 +10,7 @@ export function registerBootstrapRoutes(app: FastifyInstance, pool: DatabasePool
   const bootstrap = new BootstrapRepository(pool)
   const catalog = new CatalogRepository(pool)
   app.get("/v1/bootstrap", async (request, reply) => {
-    const identity = await requireAuth(request)
+    const identity = await requireAuth(request, undefined, pool)
     const { deviceId } = z.object({ deviceId: z.string().min(8) }).parse(request.query)
     const [merchant, device, products] = await Promise.all([
       bootstrap.merchant(identity.merchantId),

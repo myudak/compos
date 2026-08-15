@@ -32,6 +32,21 @@ export const resetPinRequestSchema = z.object({
 })
 
 export const operatorListResponseSchema = z.object({ operators: z.array(adminOperatorSchema) })
+export const operatorMutationResponseSchema = z.object({ operator: adminOperatorSchema })
+export const resetPinResponseSchema = z.object({ success: z.literal(true) })
+
+export const registerDeviceRequestSchema = z.object({
+  merchantCode: z.string().trim().min(2).max(48),
+  activationCode: z.string().min(4).max(128),
+  deviceId: z.string().min(8).max(128),
+  deviceName: z.string().trim().min(2).max(80),
+})
+
+export const registerDeviceResponseSchema = z.object({
+  deviceId: z.string(),
+  merchantId: z.string(),
+  status: z.literal("REGISTERED"),
+})
 
 export const adminDeviceSchema = z.object({
   id: z.string(),
@@ -41,9 +56,14 @@ export const adminDeviceSchema = z.object({
 })
 
 export const deviceListResponseSchema = z.object({ devices: z.array(adminDeviceSchema) })
+export const revokeDeviceResponseSchema = z.object({
+  deviceId: z.string(),
+  status: z.literal("REVOKED"),
+})
 
 export type AdminOperator = z.infer<typeof adminOperatorSchema>
 export type CreateOperatorRequest = z.infer<typeof createOperatorRequestSchema>
 export type UpdateOperatorRequest = z.infer<typeof updateOperatorRequestSchema>
 export type ResetPinRequest = z.infer<typeof resetPinRequestSchema>
 export type AdminDevice = z.infer<typeof adminDeviceSchema>
+export type RegisterDeviceRequest = z.infer<typeof registerDeviceRequestSchema>

@@ -11,7 +11,7 @@ export function registerSyncRoutes(app: FastifyInstance, pool: DatabasePool) {
   const acceptance = new TransactionAcceptanceService(pool)
   app.post("/v1/sync/transactions", async (request, reply) => {
     const startedAt = performance.now()
-    const identity = await requireAuth(request, ["OPERATOR", "ADMIN"])
+    const identity = await requireAuth(request, ["OPERATOR", "ADMIN"], pool)
     const requestId = String(request.id || randomUUID())
     const envelope = syncEnvelopeSchema.parse(request.body)
     if (envelope.merchantId !== identity.merchantId) {

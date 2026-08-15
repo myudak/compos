@@ -41,6 +41,11 @@ const ReconciliationPage = lazy(() =>
     default: module.ReconciliationPage,
   })),
 )
+const AdminUsersPage = lazy(() =>
+  import("@/features/admin-users/admin-users-page").then((module) => ({
+    default: module.AdminUsersPage,
+  })),
+)
 
 function RouteFallback() {
   return (
@@ -109,6 +114,16 @@ export default function App() {
               element={
                 session?.operator.role === "ADMIN" ? (
                   <ReconciliationPage />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                session?.operator.role === "ADMIN" ? (
+                  <AdminUsersPage />
                 ) : (
                   <Navigate to="/" replace />
                 )

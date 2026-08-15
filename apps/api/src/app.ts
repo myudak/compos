@@ -12,6 +12,7 @@ import { registerBootstrapRoutes } from "./routes/bootstrap.js"
 import { registerCorrectionRoutes } from "./routes/corrections.js"
 import { registerDeviceRoutes } from "./routes/devices.js"
 import { registerDiscrepancyRoutes } from "./routes/discrepancies.js"
+import { registerOperatorRoutes } from "./routes/operators.js"
 import { registerProductRoutes } from "./routes/products.js"
 import { registerSyncRoutes } from "./routes/sync.js"
 import { registerTransactionRoutes } from "./routes/transactions.js"
@@ -64,6 +65,7 @@ export async function buildApp(pool: DatabasePool = defaultPool) {
   registerTransactionRoutes(app, pool)
   registerCorrectionRoutes(app, pool)
   registerDiscrepancyRoutes(app, pool)
+  registerOperatorRoutes(app, pool)
   registerProductRoutes(app, pool)
 
   app.setErrorHandler((error, request, reply) => {

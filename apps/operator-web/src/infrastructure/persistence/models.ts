@@ -1,4 +1,4 @@
-export type ProductCategory = "Kopi" | "Non Kopi" | "Makanan"
+export type ProductCategory = string
 
 export type Product = {
   id: string
