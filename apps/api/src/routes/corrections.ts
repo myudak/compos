@@ -1,15 +1,10 @@
+import { createCorrectionRequestSchema } from "@operator/contracts"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
 
 import { requireAuth } from "../auth.js"
 import type { DatabasePool } from "../db.js"
 import { ReconciliationService } from "../modules/reconciliation/service.js"
-
-const correctionSchema = z.object({
-  reason: z.string().min(8).max(500),
-  adjustmentAmount: z.number().int(),
-  evidenceReference: z.string().max(180).optional(),
-})
 
 export function registerCorrectionRoutes(app: FastifyInstance, pool: DatabasePool) {
   const service = new ReconciliationService(pool)
@@ -19,7 +14,7 @@ export function registerCorrectionRoutes(app: FastifyInstance, pool: DatabasePoo
     const correction = await service.createCorrection(
       identity,
       transactionId,
-      correctionSchema.parse(request.body),
+      createCorrectionRequestSchema.parse(request.body),
     )
     return reply.code(201).send(correction)
   })

@@ -25,9 +25,11 @@ export function AdminCatalogPage() {
 
   async function save(input: ProductInput) {
     if (editing) {
-      await catalog.update(editing.id, input)
-      setEditing(null)
-    } else await catalog.create(input)
+      const updated = await catalog.update(editing.id, input)
+      if (updated) setEditing(null)
+      return Boolean(updated)
+    }
+    return Boolean(await catalog.create(input))
   }
 
   return (

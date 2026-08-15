@@ -16,9 +16,6 @@ export async function commitLocalSale(transaction: LocalTransaction) {
       for (const item of transaction.items) {
         const product = productById.get(item.productId)
         if (!product) throw new Error(`Produk ${item.productId} tidak tersedia di katalog lokal`)
-        if (product.stock < item.quantity) {
-          throw new Error(`Stok ${product.name} tidak mencukupi`)
-        }
       }
 
       await database.transactions.add(transaction)

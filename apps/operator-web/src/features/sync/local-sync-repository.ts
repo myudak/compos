@@ -69,13 +69,16 @@ export class LocalSyncRepository {
 
   async applyResults(batch: SyncBatch, results: SyncResult[], startedAt: number) {
     const resultById = new Map(results.map((result) => [result.transactionId, result]))
+    const transactionById = new Map(
+      batch.transactions.map((transaction) => [transaction.id, transaction]),
+    )
     let synced = 0
     await database.transaction(
       "rw",
       [database.transactions, database.outbox, database.syncAttempts, database.settings],
       async () => {
         for (const entry of batch.entries) {
-          const transaction = batch.transactions.find((item) => item.id === entry.transactionId)!
+          const transaction = transactionById.get(entry.transactionId)!
           const result = resultById.get(entry.transactionId)
           const transition = transitionForResult(result, entry.retryCount, this.now(), this.random)
           if (result) {

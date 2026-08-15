@@ -53,53 +53,7 @@ export function LoginPage({
   return (
     <main className="grain relative grid min-h-svh overflow-hidden bg-background lg:grid-cols-[minmax(0,1fr)_520px]">
       <div className="app-grid pointer-events-none absolute inset-0 opacity-45" />
-      <section className="relative hidden flex-col justify-between border-r p-10 lg:flex">
-        <div className="flex items-center gap-2.5">
-          <div className="grid size-9 place-items-center rounded-md bg-primary text-sm font-black text-primary-foreground">
-            OP
-          </div>
-          <div>
-            <div className="text-sm font-semibold">operator.</div>
-            <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-              POS / local-first
-            </div>
-          </div>
-        </div>
-        <div className="max-w-2xl">
-          <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-primary">
-            Sync without signal
-          </p>
-          <h1 className="max-w-xl text-5xl font-semibold leading-[1.05] tracking-[-0.06em]">
-            Jual sekarang.
-            <br />
-            <span className="text-muted-foreground">Sinkron nanti.</span>
-          </h1>
-          <p className="mt-5 max-w-lg text-sm leading-6 text-muted-foreground">
-            Checkout kritikal tidak menunggu jaringan. Device ini menulis transaksi secara lokal,
-            mempertahankan identitas yang stabil, lalu melakukan reconciliation ke backend saat
-            koneksi tersedia.
-          </p>
-          <div className="mt-8 grid max-w-xl grid-cols-3 gap-2">
-            {[
-              [IconDatabase, "Local write", "IndexedDB"],
-              [IconShieldCheck, "Safe retry", "Idempotent"],
-              [IconWifi, "Reconnect", "Automatic"],
-            ].map(([Icon, title, copy]) => {
-              const ItemIcon = Icon as typeof IconDatabase
-              return (
-                <Card key={String(title)} className="bg-card/65 p-3">
-                  <ItemIcon className="mb-5 size-4 text-primary" />
-                  <div className="text-xs font-semibold">{String(title)}</div>
-                  <div className="mt-1 text-[10px] text-muted-foreground">{String(copy)}</div>
-                </Card>
-              )
-            })}
-          </div>
-        </div>
-        <div className="text-[10px] text-muted-foreground">
-          COMPFEST 18 · Operator reliability prototype
-        </div>
-      </section>
+      <LoginMarketing />
 
       <section className="relative grid place-items-center p-5 sm:p-10">
         <form onSubmit={submit} className="w-full max-w-sm">
@@ -187,5 +141,54 @@ export function LoginPage({
         </form>
       </section>
     </main>
+  )
+}
+
+function LoginMarketing() {
+  const capabilities = [
+    [IconDatabase, "Local write", "IndexedDB"],
+    [IconShieldCheck, "Safe retry", "Idempotent"],
+    [IconWifi, "Reconnect", "Automatic"],
+  ] as const
+  return (
+    <section className="relative hidden flex-col justify-between border-r p-10 lg:flex">
+      <div className="flex items-center gap-2.5">
+        <div className="grid size-9 place-items-center rounded-md bg-primary text-sm font-black text-primary-foreground">
+          OP
+        </div>
+        <div>
+          <div className="text-sm font-semibold">operator.</div>
+          <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+            POS / local-first
+          </div>
+        </div>
+      </div>
+      <div className="max-w-2xl">
+        <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-primary">
+          Sync without signal
+        </p>
+        <h1 className="max-w-xl text-5xl font-semibold leading-[1.05] tracking-[-0.06em]">
+          Jual sekarang.
+          <br />
+          <span className="text-muted-foreground">Sinkron nanti.</span>
+        </h1>
+        <p className="mt-5 max-w-lg text-sm leading-6 text-muted-foreground">
+          Checkout kritikal menulis transaksi lokal dahulu, mempertahankan identitas stabil, lalu
+          melakukan reconciliation saat jaringan tersedia.
+        </p>
+        <div className="mt-8 grid max-w-xl grid-cols-3 gap-2">
+          {capabilities.map(([Icon, title, copy]) => (
+            <Card key={title} className="bg-card/65 p-3">
+              <Icon className="mb-5 size-4 text-primary" />
+              <div className="text-xs font-semibold">{title}</div>
+              <div className="mt-1 text-[10px] text-muted-foreground">{copy}</div>
+            </Card>
+          ))}
+        </div>
+      </div>
+      <div className="text-[10px] text-muted-foreground">
+        COMPFEST 18 · Operator reliability prototype
+      </div>
+    </section>
   )
 }

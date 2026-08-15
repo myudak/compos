@@ -82,7 +82,27 @@ export const transactionDetailSchema = transactionSummarySchema.extend({
   items: z.array(transactionItemSchema),
 })
 
+export const backendTransactionSchema = z.object({
+  id: z.string().min(1),
+  invoiceNumber: z.string(),
+  transactionStatus: transactionStatusSchema.exclude(["PENDING"]),
+  settlementStatus: settlementStatusSchema.extract(["SETTLED"]),
+  paymentMethod: paymentMethodSchema,
+  paymentVerificationType: paymentVerificationTypeSchema,
+  total: z.number().int().nonnegative(),
+  createdAtDevice: z.iso.datetime({ offset: true }),
+  receivedAtBackend: z.iso.datetime({ offset: true }),
+  operatorId: z.string().min(1),
+  operatorName: z.string(),
+  correctionTotal: z.number().int(),
+})
+
+export const backendTransactionListResponseSchema = z.object({
+  transactions: z.array(backendTransactionSchema),
+})
+
 export type TransactionItem = z.infer<typeof transactionItemSchema>
 export type SyncTransaction = z.infer<typeof syncTransactionSchema>
 export type TransactionSummary = z.infer<typeof transactionSummarySchema>
 export type TransactionDetail = z.infer<typeof transactionDetailSchema>
+export type BackendTransaction = z.infer<typeof backendTransactionSchema>

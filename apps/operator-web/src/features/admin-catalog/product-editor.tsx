@@ -20,7 +20,7 @@ export function ProductEditor(props: {
   product: Product | null
   busy: boolean
   onCancelEdit: () => void
-  onSave: (input: ProductInput) => Promise<unknown>
+  onSave: (input: ProductInput) => Promise<boolean>
 }) {
   const [draft, setDraft] = useState<ProductInput>(emptyProduct)
 
@@ -46,8 +46,8 @@ export function ProductEditor(props: {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
-    await props.onSave(draft)
-    if (!props.product) setDraft(emptyProduct)
+    const saved = await props.onSave(draft)
+    if (saved && !props.product) setDraft(emptyProduct)
   }
 
   return (

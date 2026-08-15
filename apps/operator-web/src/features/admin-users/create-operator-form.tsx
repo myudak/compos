@@ -7,7 +7,7 @@ import { Input } from "@/shared/ui/components/input"
 
 export function CreateOperatorForm(props: {
   busy: boolean
-  onCreate: (input: CreateOperatorRequest) => Promise<unknown>
+  onCreate: (input: CreateOperatorRequest) => Promise<boolean>
 }) {
   const [code, setCode] = useState("")
   const [name, setName] = useState("")
@@ -16,7 +16,8 @@ export function CreateOperatorForm(props: {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
-    await props.onCreate({ code, name, pin, role })
+    const created = await props.onCreate({ code, name, pin, role })
+    if (!created) return
     setCode("")
     setName("")
     setPin("")

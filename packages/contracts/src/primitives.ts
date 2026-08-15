@@ -36,6 +36,12 @@ export const apiErrorResponseSchema = z.object({
   requestId: z.string().min(1),
 })
 
+export const healthResponseSchema = z.object({
+  status: z.enum(["ok", "degraded"]),
+  database: z.enum(["reachable", "unreachable"]),
+  timestamp: z.iso.datetime({ offset: true }),
+})
+
 export type Role = z.infer<typeof roleSchema>
 export type OperatorAppRole = z.infer<typeof operatorAppRoleSchema>
 export type PaymentMethod = z.infer<typeof paymentMethodSchema>

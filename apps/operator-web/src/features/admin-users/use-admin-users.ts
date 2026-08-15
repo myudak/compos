@@ -44,9 +44,10 @@ export function useAdminUsers() {
       await action()
       toast.success(success)
       await refresh()
+      return true
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Perubahan gagal disimpan")
-      throw error
+      return false
     } finally {
       setMutatingId(null)
     }
@@ -62,7 +63,7 @@ export function useAdminUsers() {
     create: (input: CreateOperatorRequest) =>
       session
         ? run("create", () => createOperator(session, input), "Akun operator dibuat")
-        : Promise.reject(new Error("Sesi tidak tersedia")),
+        : Promise.resolve(false),
     setActive: (operator: AdminOperator, active: boolean) =>
       session
         ? run(
@@ -70,18 +71,18 @@ export function useAdminUsers() {
             () => updateOperator(session, operator.id, { active }),
             active ? "Akun diaktifkan" : "Akun dinonaktifkan",
           )
-        : Promise.reject(new Error("Sesi tidak tersedia")),
+        : Promise.resolve(false),
     setRole: (operator: AdminOperator, role: AdminOperator["role"]) =>
       session
         ? run(operator.id, () => updateOperator(session, operator.id, { role }), "Role diperbarui")
-        : Promise.reject(new Error("Sesi tidak tersedia")),
+        : Promise.resolve(false),
     resetPin: (operator: AdminOperator, pin: string) =>
       session
         ? run(operator.id, () => resetOperatorPin(session, operator.id, pin), "PIN direset")
-        : Promise.reject(new Error("Sesi tidak tersedia")),
+        : Promise.resolve(false),
     revoke: (device: AdminDevice) =>
       session
         ? run(device.id, () => revokeDevice(session, device.id), "Perangkat dicabut")
-        : Promise.reject(new Error("Sesi tidak tersedia")),
+        : Promise.resolve(false),
   }
 }

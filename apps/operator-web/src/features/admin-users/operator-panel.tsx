@@ -9,7 +9,7 @@ export function OperatorPanel(props: {
   operators: AdminOperator[]
   currentOperatorId?: string
   mutatingId: string | null
-  onCreate: (input: CreateOperatorRequest) => Promise<unknown>
+  onCreate: (input: CreateOperatorRequest) => Promise<boolean>
   onActiveChange: (operator: AdminOperator, active: boolean) => Promise<unknown>
   onRoleChange: (operator: AdminOperator, role: AdminOperator["role"]) => Promise<unknown>
   onResetPin: (operator: AdminOperator, pin: string) => Promise<unknown>

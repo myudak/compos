@@ -24,7 +24,11 @@ export async function buildApp(pool: DatabasePool = defaultPool) {
       redact: ["req.headers.authorization", "req.body.pin"],
     },
   })
-  await app.register(cors, { origin: config.CORS_ORIGIN.split(","), credentials: false })
+  await app.register(cors, {
+    origin: config.CORS_ORIGIN.split(","),
+    credentials: false,
+    methods: ["GET", "HEAD", "POST", "PATCH", "OPTIONS"],
+  })
 
   app.get("/health", async (_request, reply) => {
     try {

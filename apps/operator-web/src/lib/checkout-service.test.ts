@@ -87,15 +87,15 @@ describe("offline local persistence", () => {
     expect(await db.transactions.get(sale.id)).toBeDefined()
   })
 
-  it("rolls back all local writes when stock validation fails", async () => {
+  it("accepts a negative local projection for eventual inventory reconciliation", async () => {
     const sale = transaction("0197f0a0-insufficient-stock")
     sale.items[0]!.quantity = 99
 
-    await expect(commitLocalSale(sale)).rejects.toThrow("tidak mencukupi")
-    expect(await db.transactions.get(sale.id)).toBeUndefined()
-    expect(await db.outbox.count()).toBe(0)
-    expect((await db.products.get(product.id))?.stock).toBe(5)
-    expect(await db.drafts.get("active")).toBeDefined()
+    await commitLocalSale(sale)
+
+    expect(await db.transactions.get(sale.id)).toBeDefined()
+    expect(await db.outbox.count()).toBe(1)
+    expect((await db.products.get(product.id))?.stock).toBe(-94)
   })
 
   it("persists one device identity per browser installation", async () => {

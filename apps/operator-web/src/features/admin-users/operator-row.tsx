@@ -27,6 +27,7 @@ export function OperatorRow(props: {
 
   return (
     <div
+      data-testid={`operator-${operator.code}`}
       className={cn(
         "grid gap-3 p-4 md:grid-cols-[1fr_auto_auto] md:items-center",
         !operator.active && "opacity-55",

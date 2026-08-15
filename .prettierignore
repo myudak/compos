@@ -1,5 +1,6 @@
 .agents/
 .claude/
+.pnpm-store/
 dist/
 coverage/
 playwright-report/

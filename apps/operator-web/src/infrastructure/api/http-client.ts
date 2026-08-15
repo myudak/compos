@@ -28,7 +28,9 @@ export async function requestJson<TSchema extends ZodType>(
     response = await fetch(`${API_URL}${path}`, {
       ...init,
       headers: {
-        "content-type": "application/json",
+        ...(init.body === undefined || init.body === null
+          ? {}
+          : { "content-type": "application/json" }),
         ...(token ? { authorization: `Bearer ${token}` } : {}),
         ...init.headers,
       },

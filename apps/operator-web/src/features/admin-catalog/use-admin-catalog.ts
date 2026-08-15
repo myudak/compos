@@ -30,15 +30,16 @@ export function useAdminCatalog() {
 
   useEffect(() => void refresh(), [refresh])
 
-  async function run(id: string, action: () => Promise<unknown>, message: string) {
+  async function run(id: string, action: () => Promise<{ product: Product }>, message: string) {
     setMutatingId(id)
     try {
-      await action()
+      const { product } = await action()
+      setProducts((current) => upsertProduct(current, product))
       toast.success(message)
-      await refresh()
+      return product
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Produk gagal disimpan")
-      throw error
+      return null
     } finally {
       setMutatingId(null)
     }
@@ -52,11 +53,11 @@ export function useAdminCatalog() {
     create: (input: ProductInput) =>
       session
         ? run("create", () => createAdminProduct(session, input), "Produk dibuat")
-        : Promise.reject(new Error("Sesi tidak tersedia")),
+        : Promise.resolve(null),
     update: (productId: string, patch: ProductPatch) =>
       session
         ? run(productId, () => updateAdminProduct(session, productId, patch), "Produk diperbarui")
-        : Promise.reject(new Error("Sesi tidak tersedia")),
+        : Promise.resolve(null),
     setArchived: (product: Product, archived: boolean) =>
       session
         ? run(
@@ -64,6 +65,12 @@ export function useAdminCatalog() {
             () => setAdminProductArchived(session, product.id, archived),
             archived ? "Produk diarsipkan" : "Produk dipulihkan",
           )
-        : Promise.reject(new Error("Sesi tidak tersedia")),
+        : Promise.resolve(null),
   }
+}
+
+function upsertProduct(products: Product[], product: Product) {
+  const next = products.filter((item) => item.id !== product.id)
+  next.push(product)
+  return next.sort((left, right) => left.name.localeCompare(right.name))
 }

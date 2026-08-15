@@ -80,86 +80,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="grain min-h-svh bg-background">
       <div className="app-grid pointer-events-none fixed inset-0 opacity-35" />
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[212px] flex-col border-r bg-background/92 backdrop-blur-xl lg:flex">
-        <div className="flex h-[62px] items-center gap-2.5 border-b px-4">
-          <div className="grid size-8 place-items-center rounded-md bg-primary text-base font-black tracking-[-0.08em] text-primary-foreground">
-            OP
-          </div>
-          <div>
-            <div className="text-sm font-semibold tracking-[-0.025em]">operator.</div>
-            <div className="text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
-              POS / local-first
-            </div>
-          </div>
-        </div>
-        <div className="px-2 py-3">
-          <button className="flex w-full items-center gap-2 rounded-md border bg-card p-2 text-left transition-colors hover:bg-accent">
-            <div className="grid size-7 shrink-0 place-items-center rounded bg-primary/12 text-primary">
-              <IconBuildingStore className="size-4" />
-            </div>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-xs font-medium">
-                {merchant?.name ?? "Merchant"}
-              </span>
-              <span className="block truncate text-[10px] text-muted-foreground">
-                {merchant?.id ?? "Local workspace"}
-              </span>
-            </span>
-            <IconChevronDown className="size-3.5 text-muted-foreground" />
-          </button>
-        </div>
-        <nav className="grid gap-1 px-2">
-          <div className="px-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Workspace
-          </div>
-          {visibleNavItems.map((item) => {
-            const Icon = item.icon
-            return (
-              <NavLink
-                key={item.href}
-                to={item.href}
-                end={item.href === "/"}
-                className={({ isActive }) =>
-                  cn(
-                    "flex h-8 items-center gap-2 rounded-md px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
-                    isActive && "bg-accent text-foreground",
-                  )
-                }
-              >
-                <Icon className="size-4" />
-                <span>{item.label}</span>
-                {item.href === "/sync" && pendingCount > 0 && (
-                  <span className="ml-auto grid min-w-5 place-items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">
-                    {pendingCount}
-                  </span>
-                )}
-              </NavLink>
-            )
-          })}
-        </nav>
-        <div className="mt-auto border-t p-2">
-          <NavLink
-            to="/settings"
-            className="flex h-8 items-center gap-2 rounded-md px-2.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-          >
-            <IconSettings className="size-4" /> Pengaturan
-          </NavLink>
-          <div className="mt-2 flex items-center gap-2 rounded-md border bg-card/70 p-2">
-            <div className="grid size-7 place-items-center rounded-full bg-zinc-700 text-[10px] font-semibold">
-              RA
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-xs font-medium">
-                {session?.operator.name ?? "Operator"}
-              </div>
-              <div className="text-[10px] text-muted-foreground">
-                {session?.operator.role === "ADMIN" ? "Administrator" : "Kasir"}
-              </div>
-            </div>
-            <span className="size-1.5 rounded-full bg-emerald-400" />
-          </div>
-        </div>
-      </aside>
+      <DesktopSidebar
+        items={visibleNavItems}
+        merchantName={merchant?.name}
+        merchantId={merchant?.id}
+        operatorName={session?.operator.name}
+        admin={session?.operator.role === "ADMIN"}
+        pendingCount={pendingCount}
+      />
 
       <div className="relative z-10 lg:pl-[212px]">
         <header className="sticky top-0 z-20 flex h-[62px] items-center justify-between border-b bg-background/86 px-3 backdrop-blur-xl sm:px-5">
@@ -254,5 +182,95 @@ export function AppShell({ children }: { children: ReactNode }) {
         })}
       </nav>
     </div>
+  )
+}
+
+function DesktopSidebar(props: {
+  items: typeof navItems
+  merchantName?: string
+  merchantId?: string
+  operatorName?: string
+  admin: boolean
+  pendingCount: number
+}) {
+  return (
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[212px] flex-col border-r bg-background/92 backdrop-blur-xl lg:flex">
+      <div className="flex h-[62px] items-center gap-2.5 border-b px-4">
+        <div className="grid size-8 place-items-center rounded-md bg-primary text-base font-black text-primary-foreground">
+          OP
+        </div>
+        <div>
+          <div className="text-sm font-semibold">operator.</div>
+          <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+            POS / local-first
+          </div>
+        </div>
+      </div>
+      <div className="px-2 py-3">
+        <button className="flex w-full items-center gap-2 rounded-md border bg-card p-2 text-left">
+          <div className="grid size-7 place-items-center rounded bg-primary/12 text-primary">
+            <IconBuildingStore className="size-4" />
+          </div>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-xs font-medium">
+              {props.merchantName ?? "Merchant"}
+            </span>
+            <span className="block truncate text-[10px] text-muted-foreground">
+              {props.merchantId ?? "Local workspace"}
+            </span>
+          </span>
+          <IconChevronDown className="size-3.5 text-muted-foreground" />
+        </button>
+      </div>
+      <nav className="grid gap-1 px-2">
+        <div className="px-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Workspace
+        </div>
+        {props.items.map((item) => {
+          const Icon = item.icon
+          return (
+            <NavLink
+              key={item.href}
+              to={item.href}
+              end={item.href === "/"}
+              className={({ isActive }) =>
+                cn(
+                  "flex h-8 items-center gap-2 rounded-md px-2.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground",
+                  isActive && "bg-accent text-foreground",
+                )
+              }
+            >
+              <Icon className="size-4" />
+              <span>{item.label}</span>
+              {item.href === "/sync" && props.pendingCount > 0 && (
+                <span className="ml-auto rounded-full bg-amber-500/15 px-1.5 text-[9px] font-bold text-amber-300">
+                  {props.pendingCount}
+                </span>
+              )}
+            </NavLink>
+          )
+        })}
+      </nav>
+      <div className="mt-auto border-t p-2">
+        <NavLink
+          to="/settings"
+          className="flex h-8 items-center gap-2 rounded-md px-2.5 text-xs text-muted-foreground hover:bg-accent"
+        >
+          <IconSettings className="size-4" /> Pengaturan
+        </NavLink>
+        <div className="mt-2 flex items-center gap-2 rounded-md border bg-card/70 p-2">
+          <div className="grid size-7 place-items-center rounded-full bg-zinc-700 text-[10px] font-semibold">
+            OP
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-xs font-medium">{props.operatorName ?? "Operator"}</div>
+            <div className="text-[10px] text-muted-foreground">
+              {props.admin ? "Administrator" : "Kasir"}
+            </div>
+          </div>
+          <span className="size-1.5 rounded-full bg-emerald-400" />
+        </div>
+      </div>
+    </aside>
   )
 }

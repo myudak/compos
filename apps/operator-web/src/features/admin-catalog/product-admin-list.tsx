@@ -15,7 +15,11 @@ export function ProductAdminList(props: {
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       {props.products.map((product) => (
-        <Card key={product.id} className={!product.active ? "opacity-55" : undefined}>
+        <Card
+          key={product.id}
+          data-testid={`product-${product.sku}`}
+          className={!product.active ? "opacity-55" : undefined}
+        >
           <div className="flex gap-3 p-3">
             <div
               className="size-10 shrink-0 rounded-md border"
