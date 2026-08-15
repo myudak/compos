@@ -212,18 +212,18 @@ export function ReconciliationPage() {
                     </div>
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-semibold">{transaction.invoice_number}</span>
+                        <span className="text-xs font-semibold">{transaction.invoiceNumber}</span>
                         <Badge variant="warning">Operator asserted</Badge>
-                        {transaction.correction_total !== 0 && (
+                        {transaction.correctionTotal !== 0 && (
                           <Badge variant="outline">
-                            Adjusted {formatCurrency(transaction.correction_total)}
+                            Adjusted {formatCurrency(transaction.correctionTotal)}
                           </Badge>
                         )}
                       </div>
                       <div className="mt-1 text-[10px] text-muted-foreground">
-                        {paymentLabels[transaction.payment_method]} ·{" "}
-                        {formatTransactionDate(transaction.created_at_device)} ·{" "}
-                        {transaction.operator_name}
+                        {paymentLabels[transaction.paymentMethod]} ·{" "}
+                        {formatTransactionDate(transaction.createdAtDevice)} ·{" "}
+                        {transaction.operatorName}
                       </div>
                     </div>
                   </div>
@@ -256,14 +256,14 @@ export function ReconciliationPage() {
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold">{item.product_name}</span>
+                      <span className="text-xs font-semibold">{item.productName}</span>
                       <Badge variant={item.status === "OPEN" ? "warning" : "success"}>
                         {item.status}
                       </Badge>
                     </div>
                     <div className="mt-1 text-[10px] text-muted-foreground">
-                      Detected {formatTransactionDate(item.detected_at)} · projection{" "}
-                      <span className="text-red-400">{item.projected_stock}</span>
+                      Detected {formatTransactionDate(item.detectedAt)} · projection{" "}
+                      <span className="text-red-400">{item.projectedStock}</span>
                     </div>
                     {item.resolution && (
                       <div className="mt-1 text-[10px] text-muted-foreground">
@@ -276,7 +276,7 @@ export function ReconciliationPage() {
                       size="sm"
                       onClick={() => {
                         setSelectedDiscrepancy(item)
-                        setAdjustedStock(Math.max(0, item.projected_stock))
+                        setAdjustedStock(Math.max(0, item.projectedStock))
                       }}
                     >
                       Resolve
@@ -301,23 +301,23 @@ export function ReconciliationPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold">{item.invoice_number}</span>
+                        <span className="text-xs font-semibold">{item.invoiceNumber}</span>
                         <Badge variant="outline">Immutable original</Badge>
                       </div>
                       <p className="mt-2 text-xs text-muted-foreground">{item.reason}</p>
                       <div className="mt-2 text-[10px] text-muted-foreground">
-                        {item.admin_name} · {formatTransactionDate(item.created_at)}
-                        {item.evidence_reference ? ` · ${item.evidence_reference}` : ""}
+                        {item.adminName} · {formatTransactionDate(item.createdAt)}
+                        {item.evidenceReference ? ` · ${item.evidenceReference}` : ""}
                       </div>
                     </div>
                     <strong
                       className={cn(
                         "text-sm tabular-nums",
-                        item.adjustment_amount < 0 ? "text-red-400" : "text-emerald-400",
+                        item.adjustmentAmount < 0 ? "text-red-400" : "text-emerald-400",
                       )}
                     >
-                      {item.adjustment_amount > 0 ? "+" : ""}
-                      {formatCurrency(item.adjustment_amount)}
+                      {item.adjustmentAmount > 0 ? "+" : ""}
+                      {formatCurrency(item.adjustmentAmount)}
                     </strong>
                   </div>
                 </Card>
@@ -342,7 +342,7 @@ export function ReconciliationPage() {
           {selectedTransaction && (
             <div className="grid gap-3">
               <div className="flex justify-between rounded-md bg-secondary p-3 text-xs">
-                <span>{selectedTransaction.invoice_number}</span>
+                <span>{selectedTransaction.invoiceNumber}</span>
                 <strong>{formatCurrency(selectedTransaction.total)}</strong>
               </div>
               <label className="grid gap-1.5">

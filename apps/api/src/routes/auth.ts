@@ -32,10 +32,30 @@ export function registerAuthRoutes(app: FastifyInstance, pool: DatabasePool) {
       [body.merchantCode, body.operatorCode, body.deviceId],
     )
     const operator = result.rows[0]
-    if (!operator || !operator.active || operator.revoked_at || !(await bcrypt.compare(body.pin, operator.pin_hash))) {
-      return reply.code(401).send({ code: "INVALID_CREDENTIALS", message: "Merchant, operator, PIN, or device is invalid" })
+    if (
+      !operator ||
+      !operator.active ||
+      operator.revoked_at ||
+      !(await bcrypt.compare(body.pin, operator.pin_hash))
+    ) {
+      return reply
+        .code(401)
+        .send({
+          code: "INVALID_CREDENTIALS",
+          message: "Merchant, operator, PIN, or device is invalid",
+        })
     }
-    const token = await signAccessToken({ operatorId: operator.id, operatorName: operator.name, merchantId: operator.merchant_id, role: operator.role })
-    return { token, expiresInSeconds: 43_200, operator: { id: operator.id, name: operator.name, role: operator.role }, merchantId: operator.merchant_id }
+    const token = await signAccessToken({
+      operatorId: operator.id,
+      operatorName: operator.name,
+      merchantId: operator.merchant_id,
+      role: operator.role,
+    })
+    return {
+      token,
+      expiresInSeconds: 43_200,
+      operator: { id: operator.id, name: operator.name, role: operator.role },
+      merchantId: operator.merchant_id,
+    }
   })
 }

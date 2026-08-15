@@ -4,18 +4,30 @@ const baseUrl = process.env.API_URL ?? "http://localhost:3001"
 const deviceId = `DVC-SMOKE-${randomUUID()}`
 
 async function jsonRequest<T>(path: string, init: RequestInit): Promise<T> {
-  const response = await fetch(`${baseUrl}${path}`, { ...init, headers: { "content-type": "application/json", ...init.headers } })
-  const body = await response.json() as T
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers: { "content-type": "application/json", ...init.headers },
+  })
+  const body = (await response.json()) as T
   if (!response.ok) throw new Error(`${response.status} ${JSON.stringify(body)}`)
   return body
 }
 
 await jsonRequest("/v1/devices/register", {
   method: "POST",
-  body: JSON.stringify({ merchantCode: "KEDAI-NUSA", activationCode: "COMP18-DEMO", deviceId, deviceName: "Smoke Test Device" }),
+  body: JSON.stringify({
+    merchantCode: "KEDAI-NUSA",
+    activationCode: "COMP18-DEMO",
+    deviceId,
+    deviceName: "Smoke Test Device",
+  }),
 })
 
-const login = await jsonRequest<{ token: string; operator: { id: string; name: string }; merchantId: string }>("/v1/auth/login", {
+const login = await jsonRequest<{
+  token: string
+  operator: { id: string; name: string }
+  merchantId: string
+}>("/v1/auth/login", {
   method: "POST",
   body: JSON.stringify({ merchantCode: "KEDAI-NUSA", operatorCode: "RANI", pin: "1234", deviceId }),
 })
@@ -33,14 +45,48 @@ const transaction = {
   tax: 0,
   total: 22_000,
   createdAtDevice: new Date().toISOString(),
-  items: [{ productId: "prd-aren", name: "Kopi Susu Aren", quantity: 1, unitPrice: 22_000, subtotal: 22_000 }],
+  items: [
+    {
+      productId: "prd-aren",
+      name: "Kopi Susu Aren",
+      quantity: 1,
+      unitPrice: 22_000,
+      subtotal: 22_000,
+    },
+  ],
 }
 
-const body = JSON.stringify({ merchantId: login.merchantId, deviceId, batchId: randomUUID(), transactions: [transaction] })
-const first = await jsonRequest<{ results: Array<{ status: string }> }>("/v1/sync/transactions", { method: "POST", headers: { authorization: `Bearer ${login.token}` }, body })
-const retry = await jsonRequest<{ results: Array<{ status: string }> }>("/v1/sync/transactions", { method: "POST", headers: { authorization: `Bearer ${login.token}` }, body })
+const body = JSON.stringify({
+  merchantId: login.merchantId,
+  deviceId,
+  batchId: randomUUID(),
+  transactions: [transaction],
+})
+const first = await jsonRequest<{ results: Array<{ status: string }> }>("/v1/sync/transactions", {
+  method: "POST",
+  headers: { authorization: `Bearer ${login.token}` },
+  body,
+})
+const retry = await jsonRequest<{ results: Array<{ status: string }> }>("/v1/sync/transactions", {
+  method: "POST",
+  headers: { authorization: `Bearer ${login.token}` },
+  body,
+})
 
-if (first.results[0]?.status !== "ACCEPTED") throw new Error(`Expected ACCEPTED, received ${first.results[0]?.status}`)
-if (retry.results[0]?.status !== "ALREADY_PROCESSED") throw new Error(`Expected ALREADY_PROCESSED, received ${retry.results[0]?.status}`)
+if (first.results[0]?.status !== "ACCEPTED")
+  throw new Error(`Expected ACCEPTED, received ${first.results[0]?.status}`)
+if (retry.results[0]?.status !== "ALREADY_PROCESSED")
+  throw new Error(`Expected ALREADY_PROCESSED, received ${retry.results[0]?.status}`)
 
-console.log(JSON.stringify({ deviceId, operator: login.operator.name, first: first.results[0].status, retry: retry.results[0].status }, null, 2))
+console.log(
+  JSON.stringify(
+    {
+      deviceId,
+      operator: login.operator.name,
+      first: first.results[0].status,
+      retry: retry.results[0].status,
+    },
+    null,
+    2,
+  ),
+)

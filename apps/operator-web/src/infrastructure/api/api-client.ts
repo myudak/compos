@@ -112,8 +112,10 @@ type BootstrapProduct = {
   category: Product["category"]
   price: number
   stock: number
-  min_stock: number
+  lowStockThreshold: number
   accent: string
+  active: boolean
+  updatedAt: string
 }
 
 export async function bootstrapLocalData(session: AuthSession, device: DeviceIdentity) {
@@ -130,9 +132,9 @@ export async function bootstrapLocalData(session: AuthSession, device: DeviceIde
     price: product.price,
     stock: product.stock,
     accent: product.accent,
-    active: true,
-    lowStockThreshold: product.min_stock,
-    updatedAt: new Date().toISOString(),
+    active: product.active,
+    lowStockThreshold: product.lowStockThreshold,
+    updatedAt: product.updatedAt,
   }))
   await replaceCatalog(products)
   await writeSetting("merchantProfile", JSON.stringify(result.merchant))
@@ -205,38 +207,38 @@ export async function sendTransactionBatch(
 
 export type BackendTransaction = {
   id: string
-  invoice_number: string
-  transaction_status: "CONFIRMED" | "VOIDED"
-  settlement_status: "SETTLED"
-  payment_method: LocalTransaction["paymentMethod"]
-  payment_verification_type: LocalTransaction["paymentVerificationType"]
+  invoiceNumber: string
+  transactionStatus: "CONFIRMED" | "VOIDED"
+  settlementStatus: "SETTLED"
+  paymentMethod: LocalTransaction["paymentMethod"]
+  paymentVerificationType: LocalTransaction["paymentVerificationType"]
   total: number
-  created_at_device: string
-  received_at_backend: string
-  operator_name: string
-  correction_total: number
+  createdAtDevice: string
+  receivedAtBackend: string
+  operatorName: string
+  correctionTotal: number
 }
 
 export type CorrectionRecord = {
   id: string
-  transaction_id: string
+  transactionId: string
   reason: string
-  adjustment_amount: number
-  evidence_reference?: string
-  created_at: string
-  admin_name: string
-  invoice_number: string
+  adjustmentAmount: number
+  evidenceReference?: string | null
+  createdAt: string
+  adminName: string
+  invoiceNumber: string
 }
 
 export type InventoryDiscrepancy = {
   id: string
-  product_id: string
-  product_name: string
-  detected_at: string
-  projected_stock: number
+  productId: string
+  productName: string
+  detectedAt: string
+  projectedStock: number
   status: "OPEN" | "RESOLVED"
   resolution?: string
-  resolved_at?: string
+  resolvedAt?: string | null
 }
 
 export async function fetchBackendTransactions(session: AuthSession, paymentRiskOnly = false) {

@@ -25,9 +25,16 @@ export async function signAccessToken(identity: AuthIdentity) {
     .sign(secret)
 }
 
-export async function requireAuth(request: FastifyRequest, roles?: AuthIdentity["role"][]): Promise<AuthIdentity> {
+export async function requireAuth(
+  request: FastifyRequest,
+  roles?: AuthIdentity["role"][],
+): Promise<AuthIdentity> {
   const header = request.headers.authorization
-  if (!header?.startsWith("Bearer ")) throw Object.assign(new Error("Authentication required"), { statusCode: 401, code: "AUTH_REQUIRED" })
+  if (!header?.startsWith("Bearer "))
+    throw Object.assign(new Error("Authentication required"), {
+      statusCode: 401,
+      code: "AUTH_REQUIRED",
+    })
   try {
     const { payload } = await jwtVerify(header.slice(7), secret)
     const identity: AuthIdentity = {
@@ -36,11 +43,23 @@ export async function requireAuth(request: FastifyRequest, roles?: AuthIdentity[
       merchantId: String(payload.merchantId ?? ""),
       role: String(payload.role ?? "") as AuthIdentity["role"],
     }
-    if (!identity.operatorId || !identity.merchantId || !["OPERATOR", "ADMIN", "OWNER"].includes(identity.role)) throw new Error("Invalid token payload")
-    if (roles && !roles.includes(identity.role)) throw Object.assign(new Error("Insufficient permission"), { statusCode: 403, code: "FORBIDDEN" })
+    if (
+      !identity.operatorId ||
+      !identity.merchantId ||
+      !["OPERATOR", "ADMIN", "OWNER"].includes(identity.role)
+    )
+      throw new Error("Invalid token payload")
+    if (roles && !roles.includes(identity.role))
+      throw Object.assign(new Error("Insufficient permission"), {
+        statusCode: 403,
+        code: "FORBIDDEN",
+      })
     return identity
   } catch (error) {
     if (typeof error === "object" && error && "statusCode" in error) throw error
-    throw Object.assign(new Error("Invalid or expired session"), { statusCode: 401, code: "INVALID_SESSION" })
+    throw Object.assign(new Error("Invalid or expired session"), {
+      statusCode: 401,
+      code: "INVALID_SESSION",
+    })
   }
 }
