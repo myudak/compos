@@ -2,12 +2,16 @@ import { randomUUID } from "node:crypto"
 
 import { pool } from "../db.js"
 import { processBackendOutbox } from "../modules/inventory/processor.js"
+import { verifyAdministration } from "./administration-scenarios.js"
 
 const baseUrl = process.env.API_URL ?? "http://localhost:3001"
 const deviceA = `DVC-FAILURE-A-${randomUUID()}`
 const deviceB = `DVC-FAILURE-B-${randomUUID()}`
+const deviceOtherMerchant = `DVC-FAILURE-OTHER-${randomUUID()}`
 const testProductId = `prd-failure-${randomUUID()}`
 const transactionIds = new Set<string>()
+const createdOperatorIds = new Set<string>()
+const createdProductIds = new Set<string>()
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${baseUrl}${path}`, {
@@ -23,11 +27,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body
 }
 
-async function register(deviceId: string) {
+async function register(deviceId: string, merchantCode = "KEDAI-NUSA") {
   await request("/v1/devices/register", {
     method: "POST",
     body: JSON.stringify({
-      merchantCode: "KEDAI-NUSA",
+      merchantCode,
       activationCode: "COMP18-DEMO",
       deviceId,
       deviceName: `Failure ${deviceId.slice(-6)}`,
@@ -41,6 +45,21 @@ async function login(deviceId: string, operatorCode = "RANI", pin = "1234") {
     {
       method: "POST",
       body: JSON.stringify({ merchantCode: "KEDAI-NUSA", operatorCode, pin, deviceId }),
+    },
+  )
+}
+
+async function loginForMerchant(
+  deviceId: string,
+  merchantCode: string,
+  operatorCode: string,
+  pin: string,
+) {
+  return request<{ token: string; operator: { id: string }; merchantId: string }>(
+    "/v1/auth/login",
+    {
+      method: "POST",
+      body: JSON.stringify({ merchantCode, operatorCode, pin, deviceId }),
     },
   )
 }
@@ -78,7 +97,13 @@ async function sync(token: string, merchantId: string, deviceId: string, transac
     {
       method: "POST",
       headers: { authorization: `Bearer ${token}` },
-      body: JSON.stringify({ merchantId, deviceId, batchId: randomUUID(), transactions }),
+      body: JSON.stringify({
+        schemaVersion: 1,
+        merchantId,
+        deviceId,
+        batchId: randomUUID(),
+        transactions,
+      }),
     },
   )
 }
@@ -121,13 +146,21 @@ async function cleanupFixtures() {
       "DELETE FROM transactions WHERE merchant_id = 'MRC-KEDAI-NUSA' AND id = ANY($1::text[])",
       [ids],
     )
+    await client.query("DELETE FROM auth_sessions WHERE device_id = ANY($1::text[])", [
+      [deviceA, deviceB, deviceOtherMerchant],
+    ])
+    await client.query("DELETE FROM operators WHERE id = ANY($1::text[])", [
+      [...createdOperatorIds],
+    ])
     await client.query(
       "DELETE FROM devices WHERE merchant_id = 'MRC-KEDAI-NUSA' AND id = ANY($1::text[])",
       [[deviceA, deviceB]],
     )
+    await client.query("DELETE FROM devices WHERE id = $1", [deviceOtherMerchant])
     await client.query("DELETE FROM products WHERE merchant_id = 'MRC-KEDAI-NUSA' AND id = $1", [
       testProductId,
     ])
+    await client.query("DELETE FROM products WHERE id = ANY($1::text[])", [[...createdProductIds]])
     await client.query("COMMIT")
   } catch (error) {
     await client.query("ROLLBACK")
@@ -198,6 +231,15 @@ async function run() {
 
     // Device revocation is enforced server-side even if an old access token still exists.
     const admin = await login(deviceA, "ADMIN", "9999")
+    const administration = await verifyAdministration({
+      request,
+      admin,
+      operatorDeviceId: deviceA,
+      registerOtherMerchant: () => register(deviceOtherMerchant, "TOKO-LAUT"),
+      loginOtherMerchant: () => loginForMerchant(deviceOtherMerchant, "TOKO-LAUT", "ADMIN", "9999"),
+    })
+    createdOperatorIds.add(administration.operatorId)
+    createdProductIds.add(administration.productId)
     const correction = await request<{ correctionId: string; originalTransactionMutated: boolean }>(
       `/v1/admin/transactions/${lostResponseTransaction.transactionId}/corrections`,
       {
@@ -218,10 +260,10 @@ async function run() {
       /* drain until no unclaimed event remains */
     }
     const discrepancyList = await request<{
-      discrepancies: Array<{ id: string; product_id: string; status: string }>
+      discrepancies: Array<{ id: string; productId: string; status: string }>
     }>("/v1/inventory/discrepancies", { headers: { authorization: `Bearer ${admin.token}` } })
     const openDiscrepancy = discrepancyList.discrepancies.find(
-      (entry) => entry.product_id === testProductId && entry.status === "OPEN",
+      (entry) => entry.productId === testProductId && entry.status === "OPEN",
     )
     if (!openDiscrepancy)
       throw new Error("expected an open inventory discrepancy after negative projection")
@@ -250,8 +292,8 @@ async function run() {
     } catch (error) {
       revokedStatus = (error as { status?: number }).status ?? 0
     }
-    if (revokedStatus !== 403)
-      throw new Error(`revoked device: expected HTTP 403, received ${revokedStatus}`)
+    if (revokedStatus !== 401)
+      throw new Error(`revoked device: expected HTTP 401, received ${revokedStatus}`)
 
     console.log(
       JSON.stringify(
@@ -264,7 +306,9 @@ async function run() {
           reconnectBurst: `${burstResults.length}/30 ACCEPTED in bounded batches`,
           correction: `${correction.correctionId} append-only`,
           inventoryDiscrepancy: "RESOLVED after worker projection",
-          revokedDevice: "HTTP 403",
+          revokedDevice: "session invalidated with HTTP 401",
+          operatorAdministration: "create, reset PIN, deactivate, final-admin policy",
+          catalogAdministration: "create, price update, archive, restore, merchant isolation",
         },
         null,
         2,

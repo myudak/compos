@@ -13,7 +13,7 @@
     "db:seed": "tsx src/scripts/seed.ts",
     "db:reset": "tsx src/scripts/reset.ts && pnpm db:migrate && pnpm db:seed",
     "smoke": "tsx src/scripts/smoke.ts",
-    "test:integration": "tsx src/scripts/failure-scenarios.ts",
+    "test:integration": "tsx src/scripts/integration-runner.ts",
     "test": "vitest run"
   },
   "dependencies": {
