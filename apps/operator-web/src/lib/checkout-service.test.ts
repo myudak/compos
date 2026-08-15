@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
-import { commitLocalSale } from "@/lib/checkout-service"
-import { db, getOrCreateDeviceIdentity } from "@/lib/db"
-import { voidProvisionalTransaction } from "@/lib/transaction-actions"
-import type { LocalTransaction, Product } from "@/lib/types"
+import { database as db } from "@/infrastructure/persistence/database"
+import { getOrCreateDeviceIdentity } from "@/infrastructure/persistence/device-repository"
+import type { LocalTransaction, Product } from "@/infrastructure/persistence/models"
+import {
+  commitLocalSale,
+  voidProvisionalTransaction,
+} from "@/infrastructure/persistence/transaction-repository"
 
 const product: Product = {
   id: "prd-test",
@@ -24,7 +27,15 @@ function transaction(id = "0197f0a0-test-transaction"): LocalTransaction {
     deviceId: "DVC-TEST",
     operatorId: "OPR-TEST",
     operatorName: "Test Operator",
-    items: [{ productId: product.id, name: product.name, quantity: 2, unitPrice: product.price, subtotal: 40_000 }],
+    items: [
+      {
+        productId: product.id,
+        name: product.name,
+        quantity: 2,
+        unitPrice: product.price,
+        subtotal: 40_000,
+      },
+    ],
     subtotal: 40_000,
     discount: 0,
     total: 40_000,
@@ -42,7 +53,13 @@ beforeEach(async () => {
   await db.delete()
   await db.open()
   await db.products.add(product)
-  await db.drafts.add({ id: "active", cart: { [product.id]: 2 }, transactionStatus: "PENDING", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+  await db.drafts.add({
+    id: "active",
+    cart: { [product.id]: 2 },
+    transactionStatus: "PENDING",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  })
 })
 
 afterEach(() => db.close())
@@ -54,8 +71,14 @@ describe("offline local persistence", () => {
 
     await commitLocalSale(sale)
 
-    expect(await db.transactions.get(sale.id)).toMatchObject({ syncStatus: "LOCAL_ONLY", settlementStatus: "PROVISIONAL" })
-    expect(await db.outbox.where("transactionId").equals(sale.id).first()).toMatchObject({ status: "PENDING", retryCount: 0 })
+    expect(await db.transactions.get(sale.id)).toMatchObject({
+      syncStatus: "LOCAL_ONLY",
+      settlementStatus: "PROVISIONAL",
+    })
+    expect(await db.outbox.where("transactionId").equals(sale.id).first()).toMatchObject({
+      status: "PENDING",
+      retryCount: 0,
+    })
     expect((await db.products.get(product.id))?.stock).toBe(3)
     expect(await db.drafts.get("active")).toBeUndefined()
 
@@ -86,8 +109,13 @@ describe("offline local persistence", () => {
     await commitLocalSale(sale)
     await voidProvisionalTransaction(sale.id)
 
-    expect(await db.transactions.get(sale.id)).toMatchObject({ transactionStatus: "VOIDED", syncStatus: "LOCAL_ONLY" })
+    expect(await db.transactions.get(sale.id)).toMatchObject({
+      transactionStatus: "VOIDED",
+      syncStatus: "LOCAL_ONLY",
+    })
     expect((await db.products.get(product.id))?.stock).toBe(5)
-    expect(await db.outbox.where("transactionId").equals(sale.id).first()).toMatchObject({ status: "PENDING" })
+    expect(await db.outbox.where("transactionId").equals(sale.id).first()).toMatchObject({
+      status: "PENDING",
+    })
   })
 })

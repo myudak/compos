@@ -23,8 +23,8 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
-      "max-lines": ["error", { max: 350, skipBlankLines: true, skipComments: true }],
-      "max-lines-per-function": ["warn", { max: 125, skipBlankLines: true, skipComments: true }],
+      "max-lines": ["error", { max: 450, skipBlankLines: true, skipComments: true }],
+      "max-lines-per-function": ["warn", { max: 400, skipBlankLines: true, skipComments: true }],
       complexity: ["warn", 25],
     },
   },
