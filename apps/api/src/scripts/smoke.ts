@@ -4,9 +4,11 @@ const baseUrl = process.env.API_URL ?? "http://localhost:3001"
 const deviceId = `DVC-SMOKE-${randomUUID()}`
 
 async function jsonRequest<T>(path: string, init: RequestInit): Promise<T> {
+  const headers = new Headers(init.headers)
+  if (!headers.has("content-type")) headers.set("content-type", "application/json")
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
-    headers: { "content-type": "application/json", ...init.headers },
+    headers,
   })
   const body = (await response.json()) as T
   if (!response.ok) throw new Error(`${response.status} ${JSON.stringify(body)}`)

@@ -28,6 +28,30 @@ describe("requestJson", () => {
 
     expect(requestHeaders(fetchMock)).toEqual({ "content-type": "application/json" })
   })
+
+  it("preserves caller-provided headers over generated defaults", async () => {
+    const fetchMock = successfulFetch()
+    vi.stubGlobal("fetch", fetchMock)
+
+    await requestJson(
+      "/custom",
+      responseSchema,
+      {
+        method: "POST",
+        body: "payload",
+        headers: [
+          ["content-type", "text/plain"],
+          ["authorization", "Custom credential"],
+        ],
+      },
+      "token",
+    )
+
+    expect(requestHeaders(fetchMock)).toEqual({
+      authorization: "Custom credential",
+      "content-type": "text/plain",
+    })
+  })
 })
 
 describe("resolveApiUrl", () => {
@@ -55,5 +79,5 @@ function successfulFetch() {
 
 function requestHeaders(fetchMock: ReturnType<typeof successfulFetch>) {
   const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined
-  return init?.headers
+  return Object.fromEntries(new Headers(init?.headers).entries())
 }

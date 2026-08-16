@@ -14,9 +14,11 @@ const createdOperatorIds = new Set<string>()
 const createdProductIds = new Set<string>()
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(init.headers)
+  if (init.body && !headers.has("content-type")) headers.set("content-type", "application/json")
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
-    headers: { ...(init.body ? { "content-type": "application/json" } : {}), ...init.headers },
+    headers,
   })
   const body = (await response.json()) as T
   if (!response.ok)

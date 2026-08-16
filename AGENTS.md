@@ -70,6 +70,9 @@ pnpm build
 pnpm run ci
 ```
 
+Lint canonical memakai Oxlint type-aware dan format canonical memakai Oxfmt. Jangan menambahkan
+ESLint atau Prettier kembali kecuali ada rule/plugin blocker yang terdokumentasi.
+
 Gunakan command paling kecil yang relevan selama iterasi, lalu verifikasi sebanding dengan risiko sebelum handoff. Perubahan docs-only minimal menjalankan `pnpm format:check` dan link check. Perubahan sync, persistence, auth, database, atau contracts membutuhkan test terkait dan build.
 
 ## 4. Invariants yang tidak boleh rusak

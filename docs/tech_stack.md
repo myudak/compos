@@ -11,7 +11,7 @@
 | Database        | PostgreSQL + `pg` typed repositories               | Constraint dan transaction kuat tanpa menambah ORM abstraction saat ini.   |
 | Background work | PostgreSQL outbox worker                           | Reliable handoff dengan dependency minimum.                                |
 | Test            | Vitest, fake-indexeddb, Fastify inject, Playwright | Mencakup pure policy sampai browser failure scenario.                      |
-| Tooling         | pnpm workspaces, ESLint, Prettier, GitHub Actions  | Monorepo kecil dengan quality gate konsisten.                              |
+| Tooling         | pnpm workspaces, Oxlint, Oxfmt, GitHub Actions     | Native-speed quality gate dengan type-aware linting.                       |
 
 ## Kenapa PWA, bukan React Native?
 

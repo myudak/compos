@@ -70,4 +70,7 @@ pnpm test:e2e
 Jalankan seluruh gate berurutan dengan `pnpm run ci`. Gunakan bentuk `pnpm run` karena `ci` adalah
 built-in pnpm command, bukan shorthand yang otomatis menjalankan package script.
 
+`pnpm lint` memakai Oxlint dengan native type-aware rules dari `oxlint-tsgolint`; warning tetap
+memblokir CI. `pnpm format` dan `pnpm format:check` memakai Oxfmt sebagai canonical formatter.
+
 Buat commit kecil yang tetap buildable per subsystem. Jangan commit `.agents`, `.claude`, secret, database dump, atau local tool config ke product history.

@@ -1,8 +1,0 @@
-.agents/
-.claude/
-.pnpm-store/
-dist/
-coverage/
-playwright-report/
-test-results/
-pnpm-lock.yaml

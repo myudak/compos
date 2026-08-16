@@ -32,15 +32,16 @@ export async function requestJson<TSchema extends ZodType>(
 ): Promise<z.output<TSchema>> {
   let response: Response
   try {
+    const headers = new Headers(init.headers)
+    if (init.body !== undefined && init.body !== null && !headers.has("content-type")) {
+      headers.set("content-type", "application/json")
+    }
+    if (token && !headers.has("authorization")) {
+      headers.set("authorization", `Bearer ${token}`)
+    }
     response = await fetch(`${API_URL}${path}`, {
       ...init,
-      headers: {
-        ...(init.body === undefined || init.body === null
-          ? {}
-          : { "content-type": "application/json" }),
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-        ...init.headers,
-      },
+      headers,
     })
   } catch {
     throw new ApiError("Backend tidak dapat dijangkau", 0, "NETWORK_UNREACHABLE", true)

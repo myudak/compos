@@ -123,7 +123,7 @@ docs/             Product, architecture, operations, testing, dan ADR playbook
 | Canonical persistence | PostgreSQL 17, explicit SQL repositories, transactional outbox    |
 | Background processing | Independent Node.js inventory worker                              |
 | Quality               | Vitest, fake IndexedDB, PostgreSQL integration suite, Playwright  |
-| Tooling               | pnpm workspace, ESLint, Prettier, GitHub Actions                  |
+| Tooling               | pnpm workspace, Oxlint, Oxfmt, GitHub Actions                     |
 
 Beberapa keputusan penting sengaja konservatif: PWA dipilih sebelum React Native, PostgreSQL outbox
 dipilih sebelum RabbitMQ, dan raw typed repositories dipertahankan sebelum menambah ORM. Alasan dan
@@ -181,7 +181,7 @@ Panduan first deploy, smoke test, troubleshooting, dan teardown ada di
 | Command                 | Bukti yang dijalankan                                                  |
 | ----------------------- | ---------------------------------------------------------------------- |
 | `pnpm format:check`     | Repository mengikuti canonical formatting                              |
-| `pnpm lint`             | ESLint dan maintainability limits                                      |
+| `pnpm lint`             | Oxlint type-aware dan maintainability limits                           |
 | `pnpm typecheck`        | Strict TypeScript untuk contracts, web, dan API                        |
 | `pnpm test`             | Unit + fake IndexedDB integration                                      |
 | `pnpm test:integration` | Real PostgreSQL, auth/admin, idempotency, lost response, worker replay |
