@@ -44,6 +44,22 @@ memakai PostgreSQL advisory lock.
 Detail resource, biaya, smoke test, dan teardown ada di
 [Render Demo Deployment](render_demo_deployment.md).
 
+### Cloudflare Tunnel untuk `compos.myudak.com`
+
+Build lalu jalankan hosted profile dengan exact public origin:
+
+```powershell
+pnpm build
+$env:SERVE_WEB = "true"
+$env:CORS_ORIGIN = "https://compos.myudak.com"
+pnpm start:hosted
+```
+
+Jalankan worker melalui terminal terpisah dengan `pnpm worker:hosted`, lalu arahkan Cloudflare
+Tunnel hostname `compos.myudak.com` ke `http://localhost:3001`. Jangan arahkan tunnel ke Vite port
+`5173`: production build sengaja memakai same-origin `/v1`, sehingga tidak mengekspos localhost API
+ke browser pengunjung.
+
 ## Workspace boundaries
 
 - `packages/contracts`: wire schemas dan DTO saja.
