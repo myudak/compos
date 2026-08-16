@@ -30,17 +30,19 @@ Transport tetap at-least-once. Exactly-once dicapai pada business effect lewat u
 
 ```mermaid
 sequenceDiagram
-  participant D as Device outbox
-  participant A as API
-  participant P as PostgreSQL
-  D->>A: transaction T / payload H
-  A->>P: insert transaction + items + event + outbox
-  P-->>A: COMMIT
-  A--xD: successful response hilang
-  D->>A: retry T / payload H
-  A->>P: find T dan compare H
-  A-->>D: ALREADY_PROCESSED
-  D->>D: mark settled; remove outbox
+    participant D as Device Outbox
+    participant A as API
+    participant P as PostgreSQL
+
+    D->>A: Transaction T / Payload H
+    A->>P: Insert transaction + items + event + outbox
+    P-->>A: COMMIT
+    A--xD: Response sukses hilang
+
+    D->>A: Retry T / Payload H
+    A->>P: Find T and compare H
+    A-->>D: ALREADY_PROCESSED
+    D->>D: Mark settled and remove from outbox
 ```
 
 ## Scheduler dan failure behavior
