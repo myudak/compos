@@ -1,21 +1,39 @@
-import { useState } from "react"
+import { useState, type ComponentType, type FormEvent, type ReactNode } from "react"
 import {
   IconArrowRight,
+  IconBuildingStore,
+  IconCloudCheck,
+  IconCopy,
   IconDatabase,
-  IconDeviceTablet,
+  IconDeviceMobileCode,
   IconKey,
   IconLock,
-  IconShieldCheck,
-  IconWifi,
+  IconRefresh,
+  IconUser,
 } from "@tabler/icons-react"
 
-import { Button } from "@/shared/ui/components/button"
-import { Card } from "@/shared/ui/components/card"
-import { Input } from "@/shared/ui/components/input"
 import { activateAndLogin, bootstrapLocalData } from "@/features/auth/auth-api"
 import type { AuthSession, DeviceIdentity } from "@/infrastructure/persistence/models"
+import { Button } from "@/shared/ui/components/button"
+import { Input } from "@/shared/ui/components/input"
 
 export function LoginPage({
+  device,
+  onAuthenticated,
+}: {
+  device: DeviceIdentity
+  onAuthenticated: (session: AuthSession) => void
+}) {
+  return (
+    <main className="grain relative grid min-h-svh overflow-hidden bg-background lg:grid-cols-[minmax(0,1.45fr)_minmax(440px,0.75fr)]">
+      <div className="app-grid pointer-events-none absolute inset-0 opacity-35" />
+      <LoginHero />
+      <LoginForm device={device} onAuthenticated={onAuthenticated} />
+    </main>
+  )
+}
+
+function LoginForm({
   device,
   onAuthenticated,
 }: {
@@ -29,7 +47,7 @@ export function LoginPage({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  async function submit(event: React.FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
     setLoading(true)
     setError("")
@@ -51,133 +69,186 @@ export function LoginPage({
   }
 
   return (
-    <main className="grain relative grid min-h-svh overflow-hidden bg-background lg:grid-cols-[minmax(0,1fr)_520px]">
-      <div className="app-grid pointer-events-none absolute inset-0 opacity-45" />
-      <LoginMarketing />
+    <section className="relative grid place-items-center border-l border-border/70 p-4 sm:p-8 lg:p-6 xl:p-10">
+      <form
+        onSubmit={submit}
+        className="w-full max-w-[500px] rounded-2xl border bg-card/72 p-5 shadow-2xl shadow-black/35 backdrop-blur-xl sm:p-8"
+      >
+        <MobileBrand />
+        <h2 className="text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">Aktifkan counter</h2>
+        <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+          Aktivasi pertama butuh internet. Setelah masuk, katalog dan transaksi tetap tersedia saat
+          koneksi putus.
+        </p>
 
-      <section className="relative grid place-items-center p-5 sm:p-10">
-        <form onSubmit={submit} className="w-full max-w-sm">
-          <div className="mb-7 lg:hidden">
-            <img
-              src="/brand/compos-icon.png"
-              alt="COMPOS"
-              className="mb-5 size-10 rounded-md object-cover"
+        <div className="mt-7 grid gap-4">
+          <LoginField label="Kode merchant" icon={<IconBuildingStore />}>
+            <Input
+              value={merchantCode}
+              onChange={(event) => setMerchantCode(event.target.value.toUpperCase())}
+              className="h-11 bg-background/60 pr-10"
+              autoComplete="organization"
             />
-            <h1 className="text-3xl font-semibold tracking-[-0.05em]">Aktifkan perangkat</h1>
-          </div>
-          <div className="hidden lg:block">
-            <h2 className="text-2xl font-semibold tracking-[-0.04em]">Aktifkan counter</h2>
-          </div>
-          <p className="mt-2 text-xs leading-5 text-muted-foreground">
-            Aktivasi pertama membutuhkan jaringan. Setelah itu, session dan katalog tersimpan untuk
-            penggunaan offline.
-          </p>
+          </LoginField>
+          <LoginField label="Kode operator" icon={<IconUser />}>
+            <Input
+              value={operatorCode}
+              onChange={(event) => setOperatorCode(event.target.value.toUpperCase())}
+              className="h-11 bg-background/60 pr-10"
+              autoComplete="username"
+            />
+          </LoginField>
+          <LoginField label="PIN operator" icon={<IconLock />}>
+            <Input
+              value={pin}
+              onChange={(event) => setPin(event.target.value.replace(/\D/g, ""))}
+              className="h-11 bg-background/60 pr-10"
+              type="password"
+              inputMode="numeric"
+              autoComplete="current-password"
+            />
+          </LoginField>
+          <LoginField label="Kode aktivasi device" icon={<IconKey />}>
+            <Input
+              value={activationCode}
+              onChange={(event) => setActivationCode(event.target.value.toUpperCase())}
+              className="h-11 bg-background/60 pr-10"
+              autoComplete="off"
+            />
+          </LoginField>
+        </div>
 
-          <div className="mt-6 grid gap-3">
-            <label className="grid gap-1.5">
-              <span className="text-xs font-medium">Kode merchant</span>
-              <Input
-                value={merchantCode}
-                onChange={(event) => setMerchantCode(event.target.value.toUpperCase())}
-                autoComplete="organization"
-              />
-            </label>
-            <label className="grid gap-1.5">
-              <span className="text-xs font-medium">Kode operator</span>
-              <Input
-                value={operatorCode}
-                onChange={(event) => setOperatorCode(event.target.value.toUpperCase())}
-                autoComplete="username"
-              />
-            </label>
-            <label className="grid gap-1.5">
-              <span className="text-xs font-medium">PIN operator</span>
-              <div className="relative">
-                <IconLock className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={pin}
-                  onChange={(event) => setPin(event.target.value.replace(/\D/g, ""))}
-                  className="pl-8"
-                  type="password"
-                  inputMode="numeric"
-                  autoComplete="current-password"
-                />
-              </div>
-            </label>
-            <label className="grid gap-1.5">
-              <span className="text-xs font-medium">Kode aktivasi device</span>
-              <div className="relative">
-                <IconKey className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={activationCode}
-                  onChange={(event) => setActivationCode(event.target.value.toUpperCase())}
-                  className="pl-8"
-                />
-              </div>
-            </label>
+        {error && (
+          <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/8 p-3 text-xs text-red-300">
+            {error}
           </div>
-
-          {error && (
-            <div className="mt-4 rounded-md border border-red-500/20 bg-red-500/8 p-2.5 text-xs text-red-300">
-              {error}
-            </div>
-          )}
-          <Button type="submit" size="lg" className="mt-5 w-full" disabled={loading}>
-            {loading ? "Mendaftarkan device…" : "Aktifkan & masuk"}
-            <IconArrowRight />
-          </Button>
-          <div className="mt-4 flex items-start gap-2 rounded-md border bg-card p-2.5 text-[10px] leading-4 text-muted-foreground">
-            <IconDeviceTablet className="mt-0.5 size-3.5 shrink-0 text-primary" />
-            <span>
-              Device ID dibuat sekali dan disimpan di IndexedDB:
-              <br />
-              <code className="mt-1 block break-all text-[9px] text-foreground">{device.id}</code>
-            </span>
-          </div>
-          <p className="mt-4 text-center text-[9px] text-muted-foreground">
-            Demo: KEDAI-NUSA · RANI · PIN 1234 · COMP18-DEMO
-          </p>
-        </form>
-      </section>
-    </main>
+        )}
+        <Button type="submit" size="lg" className="mt-6 h-12 w-full" disabled={loading}>
+          {loading ? "Mengaktifkan perangkat…" : "Aktifkan & masuk"}
+          <IconArrowRight />
+        </Button>
+        <DeviceIdentityCard deviceId={device.id} />
+        <p className="mt-6 text-center text-[10px] leading-5 text-muted-foreground">
+          Demo: KEDAI-NUSA · RANI · PIN 1234 · COMP18-DEMO
+        </p>
+      </form>
+    </section>
   )
 }
 
-function LoginMarketing() {
-  const capabilities = [
-    [IconDatabase, "Local write", "IndexedDB"],
-    [IconShieldCheck, "Safe retry", "Idempotent"],
-    [IconWifi, "Reconnect", "Automatic"],
-  ] as const
+function DeviceIdentityCard({ deviceId }: { deviceId: string }) {
+  const [copied, setCopied] = useState(false)
+
+  async function copyDeviceId() {
+    try {
+      await navigator.clipboard.writeText(deviceId)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1_500)
+    } catch {
+      setCopied(false)
+    }
+  }
+
   return (
-    <section className="relative hidden flex-col justify-between border-r p-10 lg:flex">
-      <div className="flex items-center gap-2.5">
-        <img src="/brand/compos-icon.png" alt="COMPOS" className="size-9 rounded-md object-cover" />
-        <div>
-          <div className="text-sm font-semibold tracking-[0.08em]">COMPOS</div>
-        </div>
+    <div className="mt-4 flex items-center gap-3 rounded-lg border bg-background/45 p-3">
+      <IconDeviceMobileCode className="size-4 shrink-0 text-primary" />
+      <div className="min-w-0 flex-1">
+        <div className="text-xs font-medium text-primary">Identitas perangkat</div>
+        <code className="mt-1 block truncate text-[10px] text-muted-foreground">{deviceId}</code>
       </div>
-      <div className="max-w-2xl">
-        <h1 className="max-w-xl text-5xl font-semibold leading-[1.05] tracking-[-0.06em]">
-          Jual sekarang.
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="shrink-0"
+        aria-label="Salin Device ID"
+        title={copied ? "Tersalin" : "Salin Device ID"}
+        onClick={() => void copyDeviceId()}
+      >
+        <IconCopy />
+      </Button>
+    </div>
+  )
+}
+
+function LoginField({
+  label,
+  icon,
+  children,
+}: {
+  label: string
+  icon: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <label className="grid gap-1.5">
+      <span className="text-xs font-medium">{label}</span>
+      <span className="relative">
+        {children}
+        <span className="pointer-events-none absolute right-3 top-1/2 grid size-4 -translate-y-1/2 place-items-center text-muted-foreground [&_svg]:size-4">
+          {icon}
+        </span>
+      </span>
+    </label>
+  )
+}
+
+function MobileBrand() {
+  return (
+    <div className="mb-8 flex items-center gap-3 lg:hidden">
+      <img src="/brand/compos-icon.png" alt="" className="size-10 rounded-lg object-cover" />
+      <span className="text-sm font-semibold tracking-[0.12em]">COMPOS</span>
+    </div>
+  )
+}
+
+function LoginHero() {
+  const capabilities: Array<[ComponentType<{ className?: string }>, string]> = [
+    [IconDatabase, "Tersimpan lokal"],
+    [IconRefresh, "Retry tanpa duplikat"],
+    [IconCloudCheck, "Sync otomatis"],
+  ]
+
+  return (
+    <section className="relative hidden min-w-0 flex-col justify-between gap-8 p-8 lg:flex xl:p-12">
+      <div className="flex items-center gap-3">
+        <img src="/brand/compos-icon.png" alt="" className="size-10 rounded-lg object-cover" />
+        <span className="text-base font-semibold tracking-[0.12em]">COMPOS</span>
+      </div>
+
+      <div className="max-w-5xl">
+        <h1 className="text-5xl font-semibold leading-[0.98] tracking-[-0.065em] xl:text-6xl 2xl:text-7xl">
+          Kasir tetap jalan.
           <br />
-          <span className="text-muted-foreground">Sinkron nanti.</span>
+          <span className="text-muted-foreground">Sinkron saat online</span>
+          <span className="text-primary">.</span>
         </h1>
-        <p className="mt-5 max-w-lg text-sm leading-6 text-muted-foreground">
-          Checkout kritikal menulis transaksi lokal dahulu, mempertahankan identitas stabil, lalu
-          melakukan reconciliation saat jaringan tersedia.
+        <p className="mt-5 max-w-2xl text-sm leading-6 text-muted-foreground xl:text-base xl:leading-7">
+          COMPOS menyimpan transaksi ke perangkat saat offline, lalu mengirimkannya otomatis ketika
+          koneksi kembali tersedia.
         </p>
-        <div className="mt-8 grid max-w-xl grid-cols-3 gap-2">
-          {capabilities.map(([Icon, title, copy]) => (
-            <Card key={title} className="bg-card/65 p-3">
-              <Icon className="mb-5 size-4 text-primary" />
-              <div className="text-xs font-semibold">{title}</div>
-              <div className="mt-1 text-[10px] text-muted-foreground">{copy}</div>
-            </Card>
+
+        <div className="mt-8 overflow-hidden rounded-2xl border bg-card/35 shadow-2xl shadow-black/20">
+          <img
+            src="/brand/compos-login-flow.png"
+            alt="Alur transaksi dari kasir ke outbox lokal lalu tersinkron ke backend"
+            className="aspect-[2.6/1] w-full object-cover"
+          />
+        </div>
+
+        <div className="mt-7 grid max-w-3xl grid-cols-3 divide-x divide-border">
+          {capabilities.map(([Icon, label]) => (
+            <div key={label} className="flex items-center gap-3 px-5 first:pl-0">
+              <Icon className="size-5 shrink-0 text-primary" />
+              <span className="text-sm font-medium">{label}</span>
+            </div>
           ))}
         </div>
       </div>
-      <div className="text-[10px] text-muted-foreground">COMPFEST 18 · Sync Without Signal</div>
+
+      <p className="text-xs text-muted-foreground">
+        Siap dipakai di toko, bazar, dan pop-up store.
+      </p>
     </section>
   )
 }
