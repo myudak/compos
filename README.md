@@ -103,7 +103,7 @@ Demo utama yang perlu dibuktikan:
 4. Pulihkan koneksi dan lihat automatic settlement tanpa duplicate.
 5. Login sebagai Admin untuk mencoba operator management, catalog pricing, correction, dan inventory
    reconciliation.
-   
+
 ## Architecture
 
 ```text
