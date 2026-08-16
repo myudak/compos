@@ -2,6 +2,10 @@
 
 ![COMPOS — Sync Without Signal](apps/operator-web/public/brand/compos-sync-without-signal.png)
 
+
+https://github.com/user-attachments/assets/7e9e7ed0-a395-4687-915a-b384770add1d
+
+
 **COMPFEST Point of Sale** — aplikasi kasir offline-first untuk case study COMPFEST 18 _Sync Without Signal_. COMPOS tetap bisa mencatat penjualan saat internet putus, menyimpan antrean transaksi di device, lalu melakukan sync yang idempotent ketika koneksi balik.
 
 Repo ini berisi:
@@ -11,7 +15,7 @@ Repo ini berisi:
 - `packages/contracts` — kontrak Zod/TypeScript yang dipakai web dan API.
 - `docs` — product and engineering playbook lengkap.
 
-## Mulai cepat
+## Quick Start
 
 Butuh Node.js 22+, pnpm 10, dan Docker Desktop/Compose.
 
