@@ -21,7 +21,7 @@ Buka `http://localhost:5173` di clean browser profile. Kasir: `KEDAI-NUSA / RANI
 6. **Lost response (45 detik):** tunjukkan test/evidence bahwa commit pertama sukses, response hilang, retry menghasilkan `ALREADY_PROCESSED`.
 7. **Admin (90 detik):** masuk sebagai Admin; buat/deactivate cashier, edit harga, lalu soft-archive product.
 8. **Exception flow (60 detik):** tampilkan payment correction dan inventory discrepancy; original transaction tetap immutable.
-9. **Evidence (45 detik):** tunjukkan `pnpm ci`, traceability matrix, test, dan CI artifacts.
+9. **Evidence (45 detik):** tunjukkan `pnpm run ci`, traceability matrix, test, dan CI artifacts.
 10. **Trade-off (45 detik):** PWA vs React Native, PostgreSQL outbox vs RabbitMQ, stale catalog, dan eventual inventory.
 
 ## Command berguna

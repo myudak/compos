@@ -15,15 +15,34 @@ pnpm dev
 
 ## Environment variables
 
-| Variable                    | Default / fungsi                                           |
-| --------------------------- | ---------------------------------------------------------- |
-| `DATABASE_URL`              | `postgres://operator:operator@localhost:5432/operator_pos` |
-| `JWT_SECRET`                | Local-only default; wajib secret nyata saat deploy.        |
-| `DEVICE_ACTIVATION_CODE`    | `COMP18-DEMO`; ganti secara aman di luar demo.             |
-| `CORS_ORIGIN`               | Daftar web origin yang diizinkan, dipisahkan koma.         |
-| `PORT`, `HOST`, `LOG_LEVEL` | API runtime configuration.                                 |
-| `VITE_API_URL`              | Browser API base; default `http://localhost:3001`.         |
-| `VITE_DEMO_MODE`            | Local fixture mode hanya saat eksplisit `true`.            |
+| Variable                    | Default / fungsi                                                                             |
+| --------------------------- | -------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`              | `postgres://operator:operator@localhost:5432/operator_pos`                                   |
+| `JWT_SECRET`                | Local-only default; wajib secret nyata saat deploy.                                          |
+| `DEVICE_ACTIVATION_CODE`    | `COMP18-DEMO`; ganti secara aman di luar demo.                                               |
+| `CORS_ORIGIN`               | Daftar web origin yang diizinkan, dipisahkan koma.                                           |
+| `PORT`, `HOST`, `LOG_LEVEL` | API runtime configuration.                                                                   |
+| `VITE_API_URL`              | Browser API base; local dev default `http://localhost:3001`, production default same-origin. |
+| `VITE_DEMO_MODE`            | Local fixture mode hanya saat eksplisit `true`.                                              |
+| `SERVE_WEB`                 | `false`; aktifkan untuk menyajikan production PWA lewat Fastify.                             |
+| `WEB_DIST_PATH`             | Optional override lokasi `operator-web/dist`; default di-resolve dari API module.            |
+
+## Hosted demo profile
+
+Render demo dan production-like local smoke memakai hasil build PWA pada origin Fastify yang sama.
+Development sehari-hari tetap memakai Vite dan API terpisah supaya HMR cepat.
+
+```bash
+pnpm build
+SERVE_WEB=true pnpm start:hosted
+```
+
+`start:hosted` menjalankan built migration runner sebelum built API. Jalankan built worker secara
+terpisah dengan `pnpm worker:hosted`. Kedua process boleh start bersamaan karena migration runner
+memakai PostgreSQL advisory lock.
+
+Detail resource, biaya, smoke test, dan teardown ada di
+[Render Demo Deployment](render_demo_deployment.md).
 
 ## Workspace boundaries
 
@@ -47,5 +66,8 @@ pnpm test:integration
 pnpm build
 pnpm test:e2e
 ```
+
+Jalankan seluruh gate berurutan dengan `pnpm run ci`. Gunakan bentuk `pnpm run` karena `ci` adalah
+built-in pnpm command, bukan shorthand yang otomatis menjalankan package script.
 
 Buat commit kecil yang tetap buildable per subsystem. Jangan commit `.agents`, `.claude`, secret, database dump, atau local tool config ke product history.

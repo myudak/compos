@@ -67,7 +67,7 @@ pnpm test
 pnpm test:integration
 pnpm test:e2e
 pnpm build
-pnpm ci
+pnpm run ci
 ```
 
 Gunakan command paling kecil yang relevan selama iterasi, lalu verifikasi sebanding dengan risiko sebelum handoff. Perubahan docs-only minimal menjalankan `pnpm format:check` dan link check. Perubahan sync, persistence, auth, database, atau contracts membutuhkan test terkait dan build.
@@ -162,17 +162,17 @@ Gunakan `apply_patch` untuk source/docs edits. Jangan menghapus, reset, atau ove
 
 ## 7. Verification matrix
 
-| Area berubah                 | Minimum verification                                         |
-| ---------------------------- | ------------------------------------------------------------ |
-| Docs/Markdown                | `pnpm format:check`, local link check                        |
-| React UI/copy                | web typecheck, relevant test, production web build           |
-| Checkout/Dexie               | unit + fake IndexedDB integration + web build                |
-| Sync policy/service          | sync unit/integration, lost-response/partial-batch coverage  |
-| Contracts                    | contracts build/test, API + web typecheck/build              |
-| API route/service/repository | API typecheck, isolated PostgreSQL integration               |
-| Auth/admin/catalog           | permission + merchant-isolation integration tests            |
-| Worker/inventory             | worker replay/idempotency integration tests                  |
-| Cross-layer critical flow    | relevant Playwright scenario; full `pnpm ci` sebelum release |
+| Area berubah                 | Minimum verification                                             |
+| ---------------------------- | ---------------------------------------------------------------- |
+| Docs/Markdown                | `pnpm format:check`, local link check                            |
+| React UI/copy                | web typecheck, relevant test, production web build               |
+| Checkout/Dexie               | unit + fake IndexedDB integration + web build                    |
+| Sync policy/service          | sync unit/integration, lost-response/partial-batch coverage      |
+| Contracts                    | contracts build/test, API + web typecheck/build                  |
+| API route/service/repository | API typecheck, isolated PostgreSQL integration                   |
+| Auth/admin/catalog           | permission + merchant-isolation integration tests                |
+| Worker/inventory             | worker replay/idempotency integration tests                      |
+| Cross-layer critical flow    | relevant Playwright scenario; full `pnpm run ci` sebelum release |
 
 Jangan menyatakan “production-ready” hanya karena build hijau. Production membutuhkan secrets management, monitoring, backup/PITR, restore drill, security/accessibility/load testing, dan additive migrations seperti dijelaskan di docs.
 

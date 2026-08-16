@@ -7,6 +7,16 @@ curl http://localhost:3001/health
 curl -H "Accept: text/plain" http://localhost:3001/metrics
 ```
 
+Untuk hosted same-origin demo, gunakan URL web service yang sama:
+
+```bash
+curl https://your-compos-host/health
+curl -H "Accept: text/plain" https://your-compos-host/metrics
+```
+
+Kalau `/` sehat tetapi `/health` gagal, browser mungkin masih menampilkan cached PWA. Treat API dan
+database health sebagai source of truth untuk kemampuan sync; jangan meminta kasir clear IndexedDB.
+
 Pantau API error/latency, sync outcome, database transaction latency, backend outbox pending/lag, open discrepancy, auth failure, dan worker retry. Structured log boleh membawa request, batch, merchant, device, transaction, result, dan latency ID—tetapi tidak boleh PIN atau bearer token.
 
 ## Incident playbooks
@@ -40,3 +50,8 @@ Pastikan worker replay selesai dan movement uniqueness benar. Setelah physical c
 ## Backup expectations
 
 Managed PostgreSQL membutuhkan daily backup + point-in-time recovery yang encrypted dan diuji restore minimal per kuartal. Local PWA data adalah operational resilience, bukan system backup. Tetapkan retention audit/transaction sebelum production.
+
+Render one-click demo tidak memenuhi expectation tersebut: free database tidak punya backup dan
+kedaluwarsa setelah 30 hari. Hapus seluruh Render project setelah evaluasi agar paid worker berhenti.
+Urutan deploy, smoke test, troubleshooting, dan teardown ada di
+[Render Demo Deployment](render_demo_deployment.md).

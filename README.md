@@ -1,30 +1,152 @@
-# COMPOS
+<div align="center">
+  <img
+    src="apps/operator-web/public/brand/compos-sync-without-signal.png"
+    alt="COMPOS Sync Without Signal — alur transaksi offline dari catalog sampai PostgreSQL"
+    width="100%"
+  />
 
-![COMPOS — Sync Without Signal](apps/operator-web/public/brand/compos-sync-without-signal.png)
+  <br />
+  <br />
+
+  <h1>COMPOS</h1>
+
+  <p><strong>Kasir tetap jalan. Sinkron saat online.</strong></p>
+
+  <p>
+    COMPOS adalah <strong>COMPFEST Point of Sale</strong> yang dirancang offline-first untuk<br />
+    case study COMPFEST 18 <em>Sync Without Signal</em>.
+  </p>
+
+  <p>
+    <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-20232A?style=for-the-badge&amp;logo=react&amp;logoColor=61DAFB" alt="React 19" /></a>
+    <a href="https://fastify.dev/"><img src="https://img.shields.io/badge/Fastify-5-111111?style=for-the-badge&amp;logo=fastify&amp;logoColor=white" alt="Fastify 5" /></a>
+    <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-17-4169E1?style=for-the-badge&amp;logo=postgresql&amp;logoColor=white" alt="PostgreSQL 17" /></a>
+    <img src="https://img.shields.io/badge/PWA-Offline_Ready-06B6D4?style=for-the-badge&amp;logo=pwa&amp;logoColor=white" alt="Offline-ready PWA" />
+    <a href="https://github.com/myudak/compos/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/myudak/compos/ci.yml?branch=main&amp;style=for-the-badge&amp;label=quality" alt="COMPOS quality gates" /></a>
+  </p>
+
+  <p>
+    <a href="#why-compos">Why COMPOS</a> ·
+    <a href="#core-guarantees">Guarantees</a> ·
+    <a href="#how-sync-works">Sync flow</a> ·
+    <a href="#product-demo">Demo</a> ·
+    <a href="#architecture">Architecture</a> ·
+    <a href="#quick-start">Quick start</a> ·
+    <a href="#one-click-demo">Deploy</a> ·
+    <a href="#documentation">Docs</a>
+  </p>
+</div>
+
+> [!IMPORTANT]
+> “Transaksi berhasil saat offline” berarti sale, item snapshot, stock projection, dan local
+> outbox sudah tersimpan atomically di device. Backend settlement baru terjadi ketika koneksi
+> sehat. Transport boleh mengirim ulang, tetapi stable transaction ID dan idempotency membuat
+> business effect tetap exactly-once.
+
+## Why COMPOS
+
+Koneksi counter UMKM, bazar, atau pop-up store tidak selalu stabil. POS yang bergantung penuh ke
+request backend bisa membuat antrean berhenti tepat ketika kasir sedang ramai. COMPOS membalik
+default tersebut: transaksi diselesaikan secara lokal dulu, lalu cloud mengejar state device ketika
+koneksi kembali.
+
+Project ini bukan mockup checkout. Repository-nya mencakup durable browser persistence, sync engine,
+merchant-scoped Admin, immutable transaction ledger, reconciliation, PostgreSQL outbox worker,
+automated failure scenarios, dan playbook engineering yang memetakan case study ke bukti.
+
+## Core guarantees
+
+| Guarantee                       | Implementasi nyata                                                                                                 |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Atomic local checkout**       | Transaction, item snapshots, outbox, stock projection, dan draft cleanup ditulis dalam satu Dexie transaction.     |
+| **Durable queue**               | Confirmed sale tetap ada setelah reload, logout, auth expiry, network loss, dan abandoned `SYNCING` recovery.      |
+| **Stable identity**             | Setiap sale memakai client-generated UUIDv7 yang tidak berubah saat retry atau berpindah batch.                    |
+| **Idempotent settlement**       | ID + payload sama menjadi `ALREADY_PROCESSED`; reuse ID dengan payload berbeda ditolak tanpa overwrite history.    |
+| **Partial batch isolation**     | Maksimal 25 due records dikirim per batch; satu item gagal tidak menggagalkan hasil item lain atau mengubah order. |
+| **Immutable history**           | Settled transaction tidak diedit; correction dan audit event bersifat append-only.                                 |
+| **Eventual inventory**          | Sale diterima lebih dulu, lalu worker menerapkan stock movement secara idempotent dan membuka discrepancy.         |
+| **Offline authorization lease** | Checkout lokal boleh lanjut maksimal 72 jam sejak online authentication terakhir tanpa menghapus queued data.      |
+
+## How sync works
+
+```mermaid
+flowchart LR
+  Sale["Kasir confirm sale"] --> Local[("IndexedDB transaction + outbox")]
+  Local --> Receipt["Receipt lokal"]
+  Receipt --> Connection{"Connection sehat?"}
+  Connection -- "Belum" --> Retry["Queued + exponential backoff"]
+  Retry --> Connection
+  Connection -- "Ya" --> Batch["Ordered batch, max 25"]
+  Batch --> Idempotency{"Stable transaction ID"}
+  Idempotency --> Ledger[("PostgreSQL immutable ledger")]
+  Ledger --> BackendOutbox["Backend outbox event"]
+  BackendOutbox --> Worker["Inventory worker"]
+  Worker --> Projection["Stock projection + discrepancy"]
+```
+
+Browser scheduler bereaksi pada startup, browser `online` event, manual reconnect, health probe, dan
+interval. Sync service hanya mengambil outbox yang sudah due, single-flight, dan tidak menghapus
+queue ketika token expired. Detail state transition, lost-response handling, dan retry policy ada di
+[Sync Protocol](docs/sync_protocol.md).
+
+## Product demo
+
+![COMPOS activation and offline sync flow](apps/operator-web/public/brand/compos-login-flow.png)
 
 https://github.com/user-attachments/assets/8e7f4339-7f47-4fe9-8533-17880da089f4
 
-**COMPFEST Point of Sale** — aplikasi kasir offline-first untuk case study COMPFEST 18 _Sync Without Signal_. COMPOS tetap bisa mencatat penjualan saat internet putus, menyimpan antrean transaksi di device, lalu melakukan sync yang idempotent ketika koneksi balik.
+Demo utama yang perlu dibuktikan:
 
-Repo ini berisi:
+1. Login dan aktivasi device ketika online.
+2. Matikan koneksi, lakukan checkout, lalu reload browser.
+3. Receipt dan transaksi tetap ada dengan status queued.
+4. Pulihkan koneksi dan lihat automatic settlement tanpa duplicate.
+5. Login sebagai Admin untuk mencoba operator management, catalog pricing, correction, dan inventory
+   reconciliation.
 
-- `apps/operator-web` — COMPOS Operator, React PWA untuk kasir dan Admin merchant.
-- `apps/api` — Fastify API, PostgreSQL persistence, dan inventory worker.
-- `packages/contracts` — kontrak Zod/TypeScript yang dipakai web dan API.
-- `docs` — product and engineering playbook lengkap.
+Script presentasi lengkap tersedia di [Demo Guide](docs/demo_guide.md).
 
-## Quick Start
+## Architecture
 
-Butuh Node.js 22+, pnpm 10, dan Docker Desktop/Compose.
+```text
+apps/
+  operator-web/   React 19 + Vite PWA, Dexie, Zustand, shadcn primitives
+  api/            Fastify API, PostgreSQL repositories, outbox inventory worker
+packages/
+  contracts/      Canonical Zod wire schemas dan inferred TypeScript DTOs
+docs/             Product, architecture, operations, testing, dan ADR playbook
+```
+
+| Layer                 | Technology                                                        |
+| --------------------- | ----------------------------------------------------------------- |
+| Operator application  | React 19, TypeScript, Vite 7, Tailwind CSS 4, PWA, Dexie, Zustand |
+| API                   | Fastify 5, Zod contracts, JWT dengan server-side session `jti`    |
+| Durable local state   | IndexedDB melalui Dexie                                           |
+| Canonical persistence | PostgreSQL 17, explicit SQL repositories, transactional outbox    |
+| Background processing | Independent Node.js inventory worker                              |
+| Quality               | Vitest, fake IndexedDB, PostgreSQL integration suite, Playwright  |
+| Tooling               | pnpm workspace, ESLint, Prettier, GitHub Actions                  |
+
+Beberapa keputusan penting sengaja konservatif: PWA dipilih sebelum React Native, PostgreSQL outbox
+dipilih sebelum RabbitMQ, dan raw typed repositories dipertahankan sebelum menambah ORM. Alasan dan
+trade-off lengkap ada di [Architecture Decision Records](docs/adr/README.md).
+
+## Quick start
+
+Requirements: Node.js 22+, pnpm 10, dan Docker Desktop/Compose.
 
 ```bash
-pnpm install
+git clone https://github.com/myudak/compos.git
+cd compos
+
+pnpm install --frozen-lockfile
 pnpm db:up
 pnpm db:reset
 pnpm dev
 ```
 
-Buka `http://localhost:5173`. Demo account:
+Buka [http://localhost:5173](http://localhost:5173). `pnpm dev` menjalankan PWA, API di port `3001`,
+dan inventory worker.
 
 | Role  | Merchant     | Operator | PIN    |
 | ----- | ------------ | -------- | ------ |
@@ -33,14 +155,55 @@ Buka `http://localhost:5173`. Demo account:
 
 Device activation code: `COMP18-DEMO`.
 
-> `pnpm db:reset` menghapus schema PostgreSQL lokal. Command ini punya guard dan hanya boleh jalan untuk database `operator_pos` atau `operator_pos_*`.
+> [!WARNING]
+> `pnpm db:reset` menghapus schema PostgreSQL lokal. Guard bawaan hanya mengizinkan database bernama
+> `operator_pos` atau `operator_pos_*`; jangan pernah menjalankannya ke production database.
 
-## Quality check
+## One-click demo
 
-```bash
-pnpm ci
-```
+<a href="https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Fmyudak%2Fcompos">
+  <img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy COMPOS to Render" />
+</a>
 
-Command tersebut menjalankan format check, lint, typecheck, unit test, integration test, dan production build. End-to-end test tersedia lewat `pnpm test:e2e`.
+Render Blueprint membuat satu same-origin Fastify + PWA service, satu independent inventory worker,
+dan satu PostgreSQL database di region Singapore. Migration berjalan concurrency-safe saat API dan
+worker start; deterministic demo seed hanya berjalan pada first deploy.
 
-Mulai baca dokumentasi dari [COMPOS Project Playbook](docs/README.md), atau langsung buka [panduan demo](docs/demo_guide.md).
+> [!CAUTION]
+> Ini adalah **isolated evaluation sandbox**, bukan production template. Inventory worker memakai
+> paid `starter` instance. Free Render PostgreSQL kedaluwarsa setelah 30 hari dan tidak menyediakan
+> backup. Demo credentials di atas bersifat publik. Review estimasi biaya sebelum approve, lalu hapus
+> seluruh Render project setelah selesai mencoba.
+
+Panduan first deploy, smoke test, troubleshooting, dan teardown ada di
+[Render Demo Deployment](docs/render_demo_deployment.md).
+
+## Quality
+
+| Command                 | Bukti yang dijalankan                                                  |
+| ----------------------- | ---------------------------------------------------------------------- |
+| `pnpm format:check`     | Repository mengikuti canonical formatting                              |
+| `pnpm lint`             | ESLint dan maintainability limits                                      |
+| `pnpm typecheck`        | Strict TypeScript untuk contracts, web, dan API                        |
+| `pnpm test`             | Unit + fake IndexedDB integration                                      |
+| `pnpm test:integration` | Real PostgreSQL, auth/admin, idempotency, lost response, worker replay |
+| `pnpm test:e2e`         | Production-build Playwright scenarios                                  |
+| `pnpm docs:check`       | Seluruh local Markdown link dan image reference                        |
+| `pnpm run ci`           | Seluruh repository quality gates dalam satu command                    |
+| GitHub Actions          | Full repository quality gate dengan PostgreSQL service                 |
+
+Build hijau bukan klaim production-ready. Secrets management, rate limiting/WAF, accessibility,
+load testing, monitoring, encrypted backup/PITR, dan restore drill tetap wajib sebelum menangani
+merchant sungguhan.
+
+## Documentation
+
+- [Project Playbook](docs/README.md) — pintu masuk seluruh product dan engineering knowledge.
+- [Case Study](docs/case_study.md) — problem, scope, dan interpretasi requirement.
+- [Traceability Matrix](docs/traceability_matrix.md) — requirement ke code, API, test, dan demo step.
+- [System Architecture](docs/system_architecture.md) — components, trust boundary, dan data flow.
+- [Database Design](docs/database_design.md) — canonical ledger, sessions, audit, dan outbox schema.
+- [Testing Strategy](docs/testing_strategy.md) — unit, integration, failure injection, dan E2E.
+- [Development Guide](docs/development_guide.md) — setup, environment, dan workspace boundaries.
+- [Deployment Plan](docs/deployment_plan.md) — sandbox versus production topology.
+- [Operations Runbook](docs/operations_runbook.md) — health signals dan incident response.

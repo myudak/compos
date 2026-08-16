@@ -28,7 +28,7 @@ Tujuan test COMPOS bukan cuma mengejar coverage, tetapi membuktikan invariants p
 pnpm test
 pnpm test:integration
 pnpm test:e2e
-pnpm ci
+pnpm run ci
 ```
 
 Integration test memakai database terisolasi `operator_pos_test`. Playwright menjalankan production build dan menyimpan trace/screenshot saat failure. CI menjalankan frozen install, format, type-aware lint, strict typecheck, unit/integration test, build, lalu browser scenarios dengan artifact on failure.

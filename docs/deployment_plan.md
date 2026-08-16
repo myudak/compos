@@ -16,6 +16,24 @@ flowchart LR
 
 Development memakai Docker Compose. CI memakai ephemeral PostgreSQL dan `operator_pos_test`. Staging meniru topology/secrets production dengan synthetic merchant. Production menyajikan immutable hashed PWA assets lewat HTTPS, memisahkan API dan worker process, serta menempatkan managed PostgreSQL di region yang sama.
 
+## Isolated Render demo
+
+```mermaid
+flowchart LR
+  Browser["Browser / installed PWA"] --> Hosted["Render web: Fastify + static PWA"]
+  Hosted --> DemoPG[("Render PostgreSQL")]
+  DemoWorker["Render background worker"] --> DemoPG
+```
+
+`render.yaml` adalah evaluation profile, bukan production target. PWA dan API disajikan dari origin
+yang sama agar Deploy Button tidak membutuhkan manual cross-service URL configuration. Worker tetap
+independen dan PostgreSQL tetap canonical. API/worker menjalankan migration sebelum start dengan
+advisory lock; seed demo hanya berjalan pada first deploy hook.
+
+Web service memakai free plan, worker memakai paid `starter`, dan free database kedaluwarsa setelah
+30 hari tanpa backup. Auto-deploy dimatikan supaya perubahan upstream tidak mengubah sandbox orang
+lain. Lihat [Render Demo Deployment](render_demo_deployment.md) sebelum approve resource.
+
 ## Release pipeline
 
 1. Install dari frozen lockfile.
@@ -27,6 +45,10 @@ Development memakai Docker Compose. CI memakai ephemeral PostgreSQL dan `operato
 7. Smoke-test health, metrics, login, synthetic settlement, dan worker drain.
 
 Clean baseline adalah prototype policy. Sebelum ada live customer data, pindah ke additive, reviewed, reversible migrations. `db:reset` tidak boleh pernah dipakai di production.
+
+GitHub Actions hanya menjalankan repository quality gate dan tidak memanggil Render CLI, membuat
+service, atau menyentuh akun Render. `render.yaml` tetap menjadi deployment recipe yang harus direview
+di halaman Blueprint sebelum evaluator memilih untuk membuat sandbox-nya sendiri.
 
 ## Security, capacity, dan recovery
 
