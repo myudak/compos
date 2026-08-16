@@ -1,6 +1,7 @@
 import type { Product } from "@operator/contracts"
 import { IconArchive, IconEdit, IconRestore } from "@tabler/icons-react"
 
+import { ProductThumbnail } from "@/features/catalog/product-thumbnail"
 import { formatCurrency } from "@/shared/lib/format"
 import { Badge } from "@/shared/ui/components/badge"
 import { Button } from "@/shared/ui/components/button"
@@ -21,10 +22,7 @@ export function ProductAdminList(props: {
           className={!product.active ? "opacity-55" : undefined}
         >
           <div className="flex gap-3 p-3">
-            <div
-              className="size-10 shrink-0 rounded-md border"
-              style={{ background: `color-mix(in srgb, ${product.accent} 25%, #18181b)` }}
-            />
+            <ProductThumbnail product={product} className="size-10 shrink-0 rounded-md border" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <span className="truncate text-xs font-semibold">{product.name}</span>

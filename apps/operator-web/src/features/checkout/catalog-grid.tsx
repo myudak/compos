@@ -1,5 +1,6 @@
-import { IconCoffee, IconGlass, IconSearch, IconShoppingBag } from "@tabler/icons-react"
+import { IconSearch } from "@tabler/icons-react"
 
+import { ProductThumbnail } from "@/features/catalog/product-thumbnail"
 import type { CatalogCategory } from "@/features/checkout/catalog-filter"
 import type { Product } from "@/infrastructure/persistence/models"
 import { formatCurrency } from "@/shared/lib/format"
@@ -73,25 +74,15 @@ function ProductCard({
   quantity: number
   onAdd: () => void
 }) {
-  const Icon =
-    product.category === "Kopi"
-      ? IconCoffee
-      : product.category === "Makanan"
-        ? IconShoppingBag
-        : IconGlass
   return (
     <button
       onClick={onAdd}
       className="group grid min-w-0 gap-2 rounded-lg border bg-card p-2 text-left transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/55"
     >
-      <div
-        className="relative grid h-20 place-items-center overflow-hidden rounded-md border"
-        style={{
-          background: `linear-gradient(145deg, color-mix(in srgb, ${product.accent} 16%, #18181b), #151517)`,
-        }}
-      >
-        <Icon className="size-8" style={{ color: product.accent }} stroke={1.5} />
-        <span className="absolute bottom-2 left-2 text-[9px] font-bold tracking-[0.18em] text-white/35">
+      <div className="relative h-28 overflow-hidden rounded-md border bg-secondary">
+        <ProductThumbnail product={product} className="size-full" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/75 to-transparent" />
+        <span className="absolute bottom-2 left-2 text-[9px] font-bold tracking-[0.18em] text-white/70">
           {product.sku}
         </span>
         {quantity > 0 && (

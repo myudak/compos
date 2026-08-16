@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { IconAlertTriangle, IconBox, IconCoffee, IconSearch } from "@tabler/icons-react"
+import { IconAlertTriangle, IconBox, IconSearch } from "@tabler/icons-react"
 import { toast } from "sonner"
 
 import { PageHeader } from "@/shared/ui/page-header"
@@ -9,6 +9,7 @@ import { Card } from "@/shared/ui/components/card"
 import { Input } from "@/shared/ui/components/input"
 import { useCatalogProducts } from "@/features/catalog/catalog-queries"
 import { refreshActiveCatalog } from "@/features/catalog/catalog-refresh"
+import { ProductThumbnail } from "@/features/catalog/product-thumbnail"
 import { formatCurrency } from "@/shared/lib/format"
 import { cn } from "@/shared/lib/utils"
 
@@ -88,19 +89,7 @@ export function ProductsPage() {
       <div className="grid grid-cols-1 gap-2 p-4 sm:grid-cols-2 sm:p-6 xl:grid-cols-3">
         {filtered.map((product) => (
           <Card key={product.id} className="flex items-center gap-3 p-3">
-            <div
-              className="relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-md"
-              style={{
-                color: product.accent,
-                background: `color-mix(in srgb, ${product.accent} 13%, #18181b)`,
-              }}
-            >
-              <IconCoffee className="size-5" />
-              <div
-                className="absolute inset-x-0 bottom-0 h-0.5"
-                style={{ background: product.accent }}
-              />
-            </div>
+            <ProductThumbnail product={product} className="size-12 shrink-0 rounded-md border" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <div className="truncate text-xs font-semibold">{product.name}</div>
