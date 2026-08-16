@@ -1,3 +1,4 @@
+https://github.com/user-attachments/assets/8e7f4339-7f47-4fe9-8533-17880da089f4
 <div align="center">
   <img
     src="apps/operator-web/public/brand/compos-sync-without-signal.png"
@@ -103,9 +104,7 @@ Demo utama yang perlu dibuktikan:
 4. Pulihkan koneksi dan lihat automatic settlement tanpa duplicate.
 5. Login sebagai Admin untuk mencoba operator management, catalog pricing, correction, dan inventory
    reconciliation.
-
-Script presentasi lengkap tersedia di [Demo Guide](docs/demo_guide.md).
-
+   
 ## Architecture
 
 ```text
