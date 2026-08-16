@@ -1,15 +1,15 @@
-# ADR-006: Last-Known Catalog Remains Sellable Offline
+# ADR-006 — Stale Catalog Boleh Dipakai Offline
 
-**Status:** Accepted
+**Status:** Diterima
 
-## Decision
+## Konteks
 
-Devices replace their active local catalog after login, startup/reconnect, and manual refresh. While offline, a device may sell the last-known product and price snapshot. The backend accepts that immutable historical snapshot.
+Device offline tidak bisa tahu perubahan harga/archive terbaru. Memblokir checkout akan menabrak tujuan utama case study.
 
-## Rationale and consequences
+## Keputusan
 
-Rejecting a legitimate offline sale because a price changed elsewhere would violate checkout continuity. Temporary price divergence is explicit and auditable. Product administration is online-only, archive is soft-delete, and historical transaction items never point back to mutable catalog values.
+Device boleh menjual dari last-known active catalog dan menyimpan item/price snapshot pada transaction. Backend menerima historical snapshot yang valid secara contract. Catalog refresh dilakukan saat login, startup/reconnect, dan manual refresh.
 
-## Ringkasan keputusan (Bahasa Indonesia)
+## Konsekuensi
 
-Perangkat offline boleh memakai katalog/harga terakhir. Backend menerima snapshot historis tersebut agar penjualan tidak hilang. Perbedaan sementara adalah trade-off eventual consistency yang terlihat di audit.
+Merchant menerima temporary price/catalog divergence. Histori tetap jujur karena snapshot immutable. Kalau bisnis nanti menuntut strict price freshness, dibutuhkan policy versioning atau online authorization yang mengurangi offline availability.

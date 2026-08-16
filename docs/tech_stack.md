@@ -1,27 +1,30 @@
-# Technology Stack and Trade-offs
+# Tech Stack dan Trade-off
 
-| Layer      | Choice                                               | Why                                                                      |
-| ---------- | ---------------------------------------------------- | ------------------------------------------------------------------------ |
-| Web        | React 19, TypeScript, Vite, PWA                      | Fast responsive installable app; one codebase for desktop/tablet/mobile. |
-| UI         | Tailwind CSS, shadcn-style primitives, Radix, Tabler | Accessible primitives and requested Nova/Zinc/Cyan visual system.        |
-| Local data | Dexie over IndexedDB                                 | Durable browser transactions, indexes, fake-IDB testing.                 |
-| UI state   | Zustand                                              | Ephemeral cart/connection state only; not durable business storage.      |
-| Contracts  | Zod + inferred TypeScript                            | Runtime request/response validation and one camelCase DTO source.        |
-| API        | Fastify                                              | Typed, low-overhead REST modules with lifecycle/error hooks.             |
-| Database   | PostgreSQL 17 + `pg`                                 | Transactions, constraints, row locks, outbox, mature operations.         |
-| Auth       | bcryptjs, JOSE JWT + DB sessions                     | Hashing, short-lived portable token, immediate server revocation.        |
-| Tests      | Vitest, fake-indexeddb, Playwright                   | Pure/local integration, real PostgreSQL, production-browser acceptance.  |
+| Area            | Pilihan                                            | Kenapa dipakai                                                             |
+| --------------- | -------------------------------------------------- | -------------------------------------------------------------------------- |
+| Web             | React 19, Vite, TypeScript                         | Cepat untuk PWA, ecosystem matang, strict typing.                          |
+| UI              | shadcn/ui, Tailwind CSS, Tabler Icons              | Accessible primitives, mudah di-theme, tidak mengunci ke component vendor. |
+| Local data      | Dexie + IndexedDB                                  | Transactional durable storage yang native di browser.                      |
+| UI state        | Zustand                                            | Ringan untuk ephemeral interaction state; bukan durable storage.           |
+| Contracts       | Zod + inferred TypeScript                          | Runtime validation dan compile-time DTO dari satu sumber.                  |
+| API             | Fastify                                            | Typed-friendly, ringan, lifecycle/plugin jelas.                            |
+| Database        | PostgreSQL + `pg` typed repositories               | Constraint dan transaction kuat tanpa menambah ORM abstraction saat ini.   |
+| Background work | PostgreSQL outbox worker                           | Reliable handoff dengan dependency minimum.                                |
+| Test            | Vitest, fake-indexeddb, Fastify inject, Playwright | Mencakup pure policy sampai browser failure scenario.                      |
+| Tooling         | pnpm workspaces, ESLint, Prettier, GitHub Actions  | Monorepo kecil dengan quality gate konsisten.                              |
 
-## Rejected or deferred alternatives
+## Kenapa PWA, bukan React Native?
 
-- **React Native:** no device-native requirement offsets a second UI/persistence/release stack. PWA service-worker shell + IndexedDB meets the case.
-- **RabbitMQ:** PostgreSQL outbox preserves acceptance atomicity with fewer moving parts. Introduce a broker only for measured consumer/throughput needs.
-- **ORM during this refactor:** typed repositories and explicit SQL make tenant predicates, locks, and idempotency visible. An ORM migration would add risk without solving two-app reuse.
-- **GraphQL:** resource/action REST endpoints and sync envelopes are simpler to cache, observe, and validate here.
-- **LocalStorage:** lacks transactions, indexing, and appropriate capacity for transaction/outbox data.
+Case study butuh desktop/tablet/mobile dan offline browser storage, bukan native hardware integration. Satu responsive PWA lebih cepat dibangun, dipasang, di-update, dan didemokan. React Native baru masuk akal kalau kebutuhan berubah ke printer/Bluetooth/NFC/background sync yang memang tidak cukup reliable di browser.
 
-See the [ADR index](adr/README.md) for individual decisions.
+## Kenapa belum RabbitMQ?
 
-## Ringkasan keputusan (Bahasa Indonesia)
+PostgreSQL outbox sudah memberi atomic handoff antara accepted sale dan inventory event. RabbitMQ akan menambah deployment, monitoring, retry semantics, dan failure surface sebelum ada throughput atau multi-consumer need yang terbukti. Broker layak ditambahkan nanti kalau independent consumers, replay, atau load test menunjukkan bottleneck nyata.
 
-Stack dipilih untuk menjamin transaksi lokal dan backend, bukan mengejar jumlah teknologi. PWA + IndexedDB memenuhi offline desktop/mobile. PostgreSQL outbox lebih sederhana dan atomik daripada RabbitMQ untuk tahap ini. Raw typed SQL sengaja dipertahankan agar tenant scope, lock, dan idempotency mudah diaudit.
+## Kenapa raw typed repositories, bukan ORM?
+
+Domain ini sensitif ke exact constraint, transaction boundary, locking, dan idempotency. Explicit SQL + mapper membuat behavior tersebut kelihatan saat review. ORM bukan anti-pattern, tapi migrasi sekarang memberi churn besar tanpa menghilangkan kompleksitas inti. Keputusan ini bisa dievaluasi lagi saat schema dan tim tumbuh.
+
+## Prinsip pemilihan teknologi
+
+COMPOS memilih dependency berdasarkan problem hari ini. Abstraction atau infrastructure baru harus punya measured benefit, clear owner, failure model, dan test strategy—bukan sekadar terdengar production-grade.

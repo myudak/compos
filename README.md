@@ -1,10 +1,17 @@
-# Operator POS
+# COMPOS
 
-Offline-first React PWA and Fastify/PostgreSQL backend for COMPFEST 18 **Sync Without Signal**. Checkout commits locally before network I/O, then settles through stable-ID idempotent synchronization.
+**COMPFEST Point of Sale** — aplikasi kasir offline-first untuk case study COMPFEST 18 _Sync Without Signal_. COMPOS tetap bisa mencatat penjualan saat internet putus, menyimpan antrean transaksi di device, lalu melakukan sync yang idempotent ketika koneksi balik.
 
-## Quick start
+Repo ini berisi:
 
-Requirements: Node.js 22+, pnpm 10, and Docker Desktop.
+- `apps/operator-web` — COMPOS Operator, React PWA untuk kasir dan Admin merchant.
+- `apps/api` — Fastify API, PostgreSQL persistence, dan inventory worker.
+- `packages/contracts` — kontrak Zod/TypeScript yang dipakai web dan API.
+- `docs` — product and engineering playbook lengkap.
+
+## Mulai cepat
+
+Butuh Node.js 22+, pnpm 10, dan Docker Desktop/Compose.
 
 ```bash
 pnpm install
@@ -13,18 +20,23 @@ pnpm db:reset
 pnpm dev
 ```
 
-Open `http://localhost:5173`. Demo cashier: `KEDAI-NUSA / RANI / 1234`; Admin: `KEDAI-NUSA / ADMIN / 9999`; device activation: `COMP18-DEMO`.
+Buka `http://localhost:5173`. Demo account:
 
-> `pnpm db:reset` drops the `public` schema and is guarded to databases named `operator_pos` or `operator_pos_*`.
+| Role  | Merchant     | Operator | PIN    |
+| ----- | ------------ | -------- | ------ |
+| Kasir | `KEDAI-NUSA` | `RANI`   | `1234` |
+| Admin | `KEDAI-NUSA` | `ADMIN`  | `9999` |
 
-## Project playbook
+Device activation code: `COMP18-DEMO`.
 
-The canonical product, architecture, requirements, database, testing, operations, and demo documentation starts at [docs/README.md](docs/README.md). Key entry points: [project overview](docs/project_overview.md), [case study](docs/case_study.md), [sync protocol](docs/sync_protocol.md), [traceability](docs/traceability_matrix.md), and [development guide](docs/development_guide.md).
+> `pnpm db:reset` menghapus schema PostgreSQL lokal. Command ini punya guard dan hanya boleh jalan untuk database `operator_pos` atau `operator_pos_*`.
 
-## Verification
+## Quality check
 
 ```bash
 pnpm ci
 ```
 
-This runs formatting, type-aware lint, strict typecheck, unit tests, isolated PostgreSQL integration tests, production build, and eight Playwright acceptance scenarios.
+Command tersebut menjalankan format check, lint, typecheck, unit test, integration test, dan production build. End-to-end test tersedia lewat `pnpm test:e2e`.
+
+Mulai baca dokumentasi dari [COMPOS Project Playbook](docs/README.md), atau langsung buka [panduan demo](docs/demo_guide.md).

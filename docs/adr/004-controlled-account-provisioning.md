@@ -1,15 +1,15 @@
-# ADR-004: Controlled Account Provisioning
+# ADR-004 — Controlled Account Provisioning
 
-**Status:** Accepted
+**Status:** Diterima
 
-## Decision
+## Konteks
 
-There is no public self-signup. A merchant Admin creates `OPERATOR` or `ADMIN` accounts, changes roles and names, resets PINs, and activates or deactivates accounts. `OWNER` is reserved and cannot authenticate into this UI.
+Public signup tidak cocok untuk akun kasir yang harus berada di merchant dan role tertentu.
 
-## Rationale and consequences
+## Keputusan
 
-The case mandates offline-first onboarding with no self-serve fallback. Controlled provisioning keeps every identity merchant-scoped and auditable. The API prevents self-demotion/deactivation and removal of the final active Admin.
+Hanya merchant Admin yang boleh membuat `OPERATOR` atau `ADMIN`, mengubah role/name, reset PIN, dan activate/deactivate account. `OWNER` tidak bisa dibuat dari COMPOS Operator.
 
-## Ringkasan keputusan (Bahasa Indonesia)
+## Konsekuensi
 
-Akun dibuat oleh Admin merchant, bukan registrasi publik. OWNER hanya role cadangan untuk aplikasi lain. Sistem menjaga agar selalu ada minimal satu Admin aktif.
+Onboarding membutuhkan active Admin. Last-admin dan self-demotion guard mencegah merchant terkunci tanpa administrator. PIN reset dan account deactivation menginvalidasi session terkait.

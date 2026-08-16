@@ -1,15 +1,19 @@
-# ADR-001: Responsive PWA Before React Native
+# ADR-001 — Responsive PWA Sebelum React Native
 
-**Status:** Accepted
+**Status:** Diterima
 
-## Decision
+## Konteks
 
-Ship the Operator client as a responsive, installable React PWA. Keep sync contracts client-agnostic so a future native adapter can reuse them.
+COMPOS harus cepat tersedia di desktop, tablet, dan mobile, mampu menyimpan data offline, dan mudah didemokan. Belum ada kebutuhan wajib untuk native printer, Bluetooth, NFC, atau background execution yang kuat.
 
-## Rationale and consequences
+## Keputusan
 
-The case requires desktop, tablet, and mobile usability plus offline storage; IndexedDB and a cached app shell satisfy those needs with one deployment surface. React Native becomes justified when printer SDKs, managed kiosk APIs, or guaranteed background execution are proven requirements. Browser background sync is best-effort, so this PWA synchronizes while open and clearly exposes queue state.
+Bangun COMPOS Operator sebagai installable React PWA. Jangan membuat React Native app paralel pada fase case study.
 
-## Ringkasan keputusan (Bahasa Indonesia)
+## Kenapa begini?
 
-PWA dipilih karena satu codebase sudah mencakup laptop, tablet, mobile, IndexedDB, dan instalasi offline. React Native baru layak jika ada kebutuhan hardware/kiosk yang browser tidak dapat penuhi.
+Satu codebase memberi delivery dan QA surface yang lebih kecil. IndexedDB cukup untuk durable queue dan Vite PWA mudah didistribusikan tanpa app-store flow.
+
+## Konsekuensi dan revisit trigger
+
+Background sync mengikuti batas browser dan hardware integration lebih terbatas. Evaluasi React Native atau native wrapper kalau printer/Bluetooth/NFC, OS kiosk control, atau guaranteed background processing sudah menjadi requirement nyata.

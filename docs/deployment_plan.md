@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-  PWA["Static PWA hosting + CDN"] --> Browser["Operator browser installation"]
+  PWA["Static PWA hosting + CDN"] --> Browser["COMPOS Operator installation"]
   Browser --> TLS["TLS load balancer"]
   TLS --> API["Stateless Fastify replicas"]
   API --> PG[("Managed PostgreSQL primary")]
@@ -14,30 +14,22 @@ flowchart LR
   Worker --> Obs
 ```
 
-## Environments
-
-Development uses Docker Compose. CI uses an ephemeral PostgreSQL service plus `operator_pos_test`. Staging mirrors production secrets/topology with synthetic merchants. Production serves immutable hashed PWA assets over HTTPS, runs API and worker separately, and uses managed PostgreSQL in the same region.
+Development memakai Docker Compose. CI memakai ephemeral PostgreSQL dan `operator_pos_test`. Staging meniru topology/secrets production dengan synthetic merchant. Production menyajikan immutable hashed PWA assets lewat HTTPS, memisahkan API dan worker process, serta menempatkan managed PostgreSQL di region yang sama.
 
 ## Release pipeline
 
-1. Install from frozen lockfile.
-2. Format, type-aware lint, strict typecheck, unit tests.
-3. Reset/migrate/seed isolated test database; run integration.
-4. Build contracts, API, and PWA; run Playwright.
+1. Install dari frozen lockfile.
+2. Jalankan format, type-aware lint, strict typecheck, dan unit test.
+3. Reset/migrate/seed isolated test DB lalu integration test.
+4. Build contracts, API, dan PWA; jalankan Playwright.
 5. Publish versioned artifacts/container images.
-6. Apply forward migration before rolling API/worker deployment.
-7. Smoke health, metrics, login, one synthetic settlement, and worker drain.
+6. Apply forward migration sebelum rolling deploy API/worker.
+7. Smoke-test health, metrics, login, synthetic settlement, dan worker drain.
 
-The clean baseline is prototype policy. Before live customer data, switch to additive, reviewed, reversible migrations; never use `db:reset` in production.
+Clean baseline adalah prototype policy. Sebelum ada live customer data, pindah ke additive, reviewed, reversible migrations. `db:reset` tidak boleh pernah dipakai di production.
 
-## Security and secrets
+## Security, capacity, dan recovery
 
-Use TLS, a secret manager, rotated JWT/device activation secrets, least-privilege DB roles, encrypted storage/backups, rate limiting/WAF, and restricted metrics endpoints. Do not expose seed credentials. Configure exact CORS origins.
+Gunakan TLS, secret manager, rotasi JWT/device activation secret, least-privilege DB role, encrypted backup, rate limit/WAF, private metrics endpoint, dan exact CORS origin. Jangan expose seed credentials.
 
-## Capacity path
-
-Scale stateless APIs horizontally; index tenant-first queries; tune pool size against database connections. Scale workers through safe event claiming. Add a broker only when independent consumers, replay, or throughput are measured bottlenecks rather than anticipated complexity.
-
-## Ringkasan keputusan (Bahasa Indonesia)
-
-PWA di-host statis, API dan worker dipisah, PostgreSQL managed menjadi source of truth. CI wajib hijau sebelum deploy rolling. Clean reset hanya untuk prototype; production harus memakai migration additive. Secrets, TLS, backup/PITR, CORS ketat, dan observability wajib sebelum go-live.
+Scale stateless API secara horizontal dan sesuaikan connection pool dengan batas PostgreSQL. Worker bisa ditambah melalui safe event claiming. RabbitMQ atau broker lain baru ditambahkan ketika independent consumer, replay, atau throughput sudah menjadi bottleneck terukur.

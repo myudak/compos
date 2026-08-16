@@ -1,46 +1,42 @@
 # Operations Runbook
 
-## Health and signals
+## Health dan signals
 
 ```bash
 curl http://localhost:3001/health
 curl -H "Accept: text/plain" http://localhost:3001/metrics
 ```
 
-Watch API error/latency, sync outcome counts, database transaction latency, backend outbox pending/lag, open discrepancies, auth failures, and worker retry errors. Structured logs include request, batch, merchant, device, transaction, result, and latency identifiers without PIN or bearer token.
+Pantau API error/latency, sync outcome, database transaction latency, backend outbox pending/lag, open discrepancy, auth failure, dan worker retry. Structured log boleh membawa request, batch, merchant, device, transaction, result, dan latency ID—tetapi tidak boleh PIN atau bearer token.
 
 ## Incident playbooks
 
-### API or database unavailable
+### API atau database unavailable
 
-1. Confirm health and database reachability; inspect recent deploy/connection saturation.
-2. Keep Operator clients offline; do not ask cashiers to clear browser data or logout.
-3. Restore API/database, then observe bounded queue drain and duplicate outcome ratio.
-4. Escalate if oldest outbox age continues rising after recovery.
+1. Cek health, database reachability, recent deploy, dan connection saturation.
+2. Biarkan COMPOS Operator bekerja offline; jangan minta kasir clear browser data atau logout.
+3. Pulihkan service, lalu pantau bounded queue drain dan duplicate outcome ratio.
+4. Escalate kalau oldest outbox age terus naik setelah recovery.
 
 ### Worker lag
 
-1. Check `backend_outbox_pending` and `outbox_lag_seconds`.
-2. Inspect `last_error`, event type coverage, locks, and database capacity.
-3. Restart/scale worker safely; processed/movement uniqueness makes replay idempotent.
-4. Never manually mark events processed without verifying the business effect.
+1. Cek `backend_outbox_pending` dan `outbox_lag_seconds`.
+2. Inspect `last_error`, event type coverage, lock, dan database capacity.
+3. Restart/scale worker dengan aman; processed/movement uniqueness membuat replay idempotent.
+4. Jangan mark event processed secara manual sebelum business effect terverifikasi.
 
-### Duplicate or payload conflict report
+### Duplicate atau payload conflict
 
-Query merchant + transaction ID and compare payload hash/events. `ALREADY_PROCESSED` is healthy after a lost response. `ID_REUSE_PAYLOAD_MISMATCH` indicates a client identity bug or altered retry and must not be overwritten.
+Query merchant + transaction ID lalu compare payload hash dan events. `ALREADY_PROCESSED` sehat setelah lost response. `ID_REUSE_PAYLOAD_MISMATCH` berarti client identity bug atau altered retry; histori tidak boleh dioverwrite.
 
 ### Device/account compromise
 
-Admin revokes the device or deactivates/resets the operator. Confirm related `auth_sessions.revoked_at`; rotate activation/JWT secrets for broader exposure. Local queued data remains on device, so follow physical-device policy.
+Admin me-revoke device atau deactivate/reset operator. Pastikan `auth_sessions.revoked_at` terisi. Untuk exposure luas, rotate activation/JWT secret. Local queued data masih berada di device, jadi physical-device policy tetap dibutuhkan.
 
 ### Negative inventory
 
-Confirm worker replay is complete, inspect movement uniqueness, then Admin performs physical count and resolves the discrepancy with a note. Do not edit catalog stock.
+Pastikan worker replay selesai dan movement uniqueness benar. Setelah physical count, Admin resolve discrepancy dengan note. Jangan edit stock dari catalog management.
 
 ## Backup expectations
 
-Managed PostgreSQL: daily backups plus point-in-time recovery, encrypted and restore-tested quarterly. PWA local data is operational resilience, not the system backup. Define retention for audit/transactions before production.
-
-## Ringkasan keputusan (Bahasa Indonesia)
-
-Saat server down, kasir tetap offline dan data browser tidak boleh dihapus. Recovery dipantau lewat outbox lag dan hasil sync. Worker aman di-replay karena idempoten. Konflik payload tidak boleh dioverwrite. Device compromise ditangani lewat revocation/session invalidation; discrepancy stok lewat stock opname dan audit, bukan edit katalog.
+Managed PostgreSQL membutuhkan daily backup + point-in-time recovery yang encrypted dan diuji restore minimal per kuartal. Local PWA data adalah operational resilience, bukan system backup. Tetapkan retention audit/transaction sebelum production.

@@ -1,15 +1,15 @@
-# ADR-007: Inventory Is an Eventual Projection
+# ADR-007 — Eventual Inventory Projection
 
-**Status:** Accepted
+**Status:** Diterima
 
-## Decision
+## Konteks
 
-Checkout does not reserve server stock. Inventory is deducted idempotently after transaction acceptance, and negative projections create discrepancies for Admin reconciliation.
+Beberapa device offline tidak bisa melakukan globally consistent stock reservation.
 
-## Rationale and consequences
+## Keputusan
 
-Concurrent offline devices cannot share a real-time reservation boundary. Preserving accepted sales is more important than pretending stock is strongly consistent. Catalog editing cannot directly change stock; corrections remain an explicit reconciliation workflow.
+Backend menerima sale lebih dulu, lalu PostgreSQL outbox worker menerapkan inventory movement secara idempotent. Negative stock membuka discrepancy untuk Admin.
 
-## Ringkasan keputusan (Bahasa Indonesia)
+## Konsekuensi
 
-Stok bukan pengunci checkout. Setelah backend menerima transaksi, worker mengurangi stok secara idempoten. Stok negatif menjadi discrepancy untuk ditangani Admin, bukan alasan menghapus penjualan.
+Displayed stock bisa sementara stale dan overselling tetap mungkin. Sebagai gantinya, checkout tetap available. Bisnis yang membutuhkan strict reservation harus memilih connectivity dependency atau conflict strategy yang berbeda.

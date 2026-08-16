@@ -1,15 +1,15 @@
-# ADR-010: Typed PostgreSQL Repositories Before an ORM
+# ADR-010 — Typed PostgreSQL Repositories Sebelum ORM
 
-**Status:** Accepted
+**Status:** Diterima
 
-## Decision
+## Konteks
 
-Keep raw parameterized PostgreSQL queries behind typed vertical-module repositories and explicit row mappers. Use one canonical `withTransaction` helper. Do not introduce an ORM during this refactor.
+COMPOS bergantung pada exact SQL transaction, unique constraint, payload hash lookup, tenant predicate, dan worker locking. Memasukkan ORM saat refactor akan memperluas perubahan tanpa menghilangkan aturan tersebut.
 
-## Rationale and consequences
+## Keputusan
 
-The current domain needs precise transactions, conflict clauses, and worker row locking. Typed repositories remove route-level SQL and `SELECT *` without adding migration/runtime abstraction cost. Reconsider an ORM when query repetition or team onboarding cost becomes measurable across more applications.
+Gunakan `pg`, explicit column list, typed row, mapper, repository, dan satu `withTransaction` helper. SQL tidak boleh berada di HTTP route.
 
-## Ringkasan keputusan (Bahasa Indonesia)
+## Konsekuensi dan revisit trigger
 
-SQL tetap dipakai karena kontrol transaksi, conflict, dan locking penting untuk offline sync. Namun SQL hanya ada di repository bertipe; route tidak boleh berisi query atau boilerplate transaksi.
+Tim menulis SQL/mapping lebih eksplisit tetapi correctness boundary mudah diaudit. Evaluasi query builder/ORM kalau schema tumbuh signifikan, migration ergonomics menjadi bottleneck, atau tim mendapat manfaat type-safety yang terukur tanpa menyembunyikan transaction semantics.

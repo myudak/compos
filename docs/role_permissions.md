@@ -1,32 +1,30 @@
-# Role and Permission Matrix
+# Role dan Permission
 
-| Capability                                   | Cashier / OPERATOR | Merchant ADMIN | OWNER |
-| -------------------------------------------- | :----------------: | :------------: | :---: |
-| Login to Operator Web                        |        Yes         |      Yes       |  No   |
-| Offline checkout and provisional receipt     |        Yes         |      Yes       |  No   |
-| View local catalog, transactions, sync queue |        Yes         |      Yes       |  No   |
-| Void provisional transaction                 |        Yes         |      Yes       |  No   |
-| Modify settled transaction                   |         No         |       No       |  No   |
-| Append payment correction                    |         No         |      Yes       |  No   |
-| Resolve inventory discrepancy                |         No         |      Yes       |  No   |
-| Create/deactivate/reset Operator/Admin       |         No         |      Yes       |  No   |
-| Revoke merchant device                       |         No         |      Yes       |  No   |
-| Create/edit/archive catalog and price        |         No         |      Yes       |  No   |
-| Directly edit stock in catalog               |         No         |       No       |  No   |
-| Access another merchant                      |         No         |       No       |  No   |
+| Capability                                       | Kasir / `OPERATOR` | Merchant `ADMIN` | `OWNER` |
+| ------------------------------------------------ | :----------------: | :--------------: | :-----: |
+| Login ke COMPOS Operator                         |         Ya         |        Ya        |  Tidak  |
+| Offline checkout dan provisional receipt         |         Ya         |        Ya        |  Tidak  |
+| Lihat local catalog, transaction, dan sync queue |         Ya         |        Ya        |  Tidak  |
+| Void provisional transaction                     |         Ya         |        Ya        |  Tidak  |
+| Mengubah settled transaction                     |       Tidak        |      Tidak       |  Tidak  |
+| Membuat payment correction                       |       Tidak        |        Ya        |  Tidak  |
+| Resolve inventory discrepancy                    |       Tidak        |        Ya        |  Tidak  |
+| Membuat/deactivate/reset Operator atau Admin     |       Tidak        |        Ya        |  Tidak  |
+| Revoke device merchant                           |       Tidak        |        Ya        |  Tidak  |
+| Membuat/edit/archive catalog dan harga           |       Tidak        |        Ya        |  Tidak  |
+| Edit stock langsung dari catalog                 |       Tidak        |      Tidak       |  Tidak  |
+| Mengakses merchant lain                          |       Tidak        |      Tidak       |  Tidak  |
 
-## Provisioning policy
+## Account provisioning
 
-There is no public signup. A merchant Admin creates `OPERATOR` or `ADMIN` accounts. The final active Admin cannot be removed, and an Admin cannot demote/deactivate itself. PIN reset, account deactivation, role change, and device revocation invalidate affected server sessions.
+Tidak ada public signup. Merchant Admin membuat akun `OPERATOR` atau `ADMIN`. Final active Admin tidak boleh dinonaktifkan, dan seorang Admin tidak boleh demote/deactivate dirinya sendiri. Reset PIN, account deactivation, role change, dan device revocation menginvalidasi server sessions yang terdampak.
 
-`OWNER` is reserved for the future Owner app. Keeping it in the backend role vocabulary prevents accidental reuse while the Operator contracts explicitly exclude it.
+`OWNER` dicadangkan untuk future Owner app. Mempertahankan role ini di vocabulary backend mencegah accidental reuse, sementara contract COMPOS Operator secara eksplisit menolaknya.
 
-## Offline authorization
+## Offline authorization timeline
 
-- Up to token expiry (12 hours): online API and local checkout work.
-- After token expiry but before offline lease expiry (72 hours): local checkout works; sync waits for re-authentication.
-- After lease expiry: existing data is readable and queued, but new checkout is blocked.
+- Sampai token expiry (12 jam): online API dan local checkout berjalan normal.
+- Setelah token expired tetapi offline lease belum habis (maksimal 72 jam): local checkout masih boleh; sync menunggu re-authentication.
+- Setelah offline lease habis: existing data tetap readable dan queued, tetapi checkout baru diblokir.
 
-## Ringkasan keputusan (Bahasa Indonesia)
-
-Kasir hanya menjalankan checkout dan melihat data operasional. Admin toko mendapat user/device, katalog, correction, dan reconciliation dalam merchant yang sama. OWNER sengaja tidak dapat masuk aplikasi Operator. Aturan last-admin dan invalidasi sesi mencegah merchant kehilangan kontrol atau sesi lama tetap aktif.
+Permission check wajib dilakukan server-side. Menyembunyikan tombol di UI hanya UX guard, bukan security boundary.

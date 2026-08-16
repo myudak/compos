@@ -1,15 +1,19 @@
-# ADR-002: PostgreSQL Outbox Before RabbitMQ
+# ADR-002 — PostgreSQL Outbox Sebelum RabbitMQ
 
-**Status:** Accepted
+**Status:** Diterima
 
-## Decision
+## Konteks
 
-Commit each accepted transaction and downstream event in one PostgreSQL transaction. Workers claim the outbox idempotently. Do not place RabbitMQ on the acceptance path.
+Accepted transaction harus memicu inventory processing tanpa celah antara database commit dan event publication.
 
-## Rationale and consequences
+## Keputusan
 
-The transactional outbox closes the dual-write failure window without adding another service. A broker may later receive events from an outbox publisher when independent consumers, routing, backpressure, or measured database load justify it. PostgreSQL remains the durable acceptance boundary either way.
+Tulis backend event ke `backend_outbox` dalam PostgreSQL transaction yang sama dengan sale, lalu proses memakai worker terpisah.
 
-## Ringkasan keputusan (Bahasa Indonesia)
+## Kenapa begini?
 
-RabbitMQ belum diperlukan. Transaksi dan event disimpan atomik di PostgreSQL, lalu worker memproses outbox. Broker dapat ditambahkan setelah ada kebutuhan scaling yang terukur.
+Atomicity tersedia tanpa distributed transaction dan dependency operasional baru. Unique movement/event constraint membuat replay aman.
+
+## Konsekuensi dan revisit trigger
+
+Worker perlu polling/claiming dan database menanggung event traffic. Tambahkan RabbitMQ atau broker lain hanya ketika independent consumer, long retention/replay, atau measured throughput membuktikan PostgreSQL outbox sudah menjadi bottleneck.

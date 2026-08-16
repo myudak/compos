@@ -1,50 +1,52 @@
 # Case Study: Sync Without Signal
 
-## Problem
+## Masalah yang harus diselesaikan
 
-Application K is a POS and BI platform for Indonesian SMEs. Its Operator application is business-critical and must keep checking out customers through prolonged or intermittent outages. Cash is system-verifiable, while Static QRIS and bank transfer depend on an operator observing an external payment signal.
+Kasir UMKM tetap harus melayani pembeli saat internet lambat atau benar-benar putus. Di saat yang sama, merchant bisa punya lebih dari satu device, payment method punya tingkat verifikasi berbeda, dan backend tidak boleh membuat transaksi ganda ketika request di-retry. Jadi problem-nya bukan sekadar “bisa offline”, tetapi menjaga consistency sambil tetap available.
 
-An offline-confirmed sale is **provisional** until backend acceptance. Reconnection must neither lose nor duplicate it. Several devices may sell for one merchant while disconnected, backend-confirmed history is immutable, and inventory is deducted after acceptance as an eventually consistent projection.
+## Interpretasi COMPOS
 
-## Case-study obligations
+COMPOS menerjemahkan case study menjadi empat invariants:
 
-- Create and confirm transactions offline; survive browser restart.
-- Synchronize automatically after reconnection with no normal manual reconciliation.
-- Prevent lost and duplicate transactions, including a lost successful HTTP response.
-- Show provisional versus settled state explicitly.
-- Support Cash, Static QRIS, and Transfer confirmation semantics.
-- Support multiple devices and operators under one merchant.
-- Permit provisional void; forbid Operator mutation after settlement.
-- Provide Admin-only append-only payment correction.
-- Deduct inventory after acceptance and expose negative projections as discrepancies.
-- Handle interrupted, concurrent, partial, and mass-reconnect synchronization.
-- Provide login, logout, controlled account creation, and permissions.
+1. **Local sale tidak boleh hilang.** Receipt baru muncul setelah sale + outbox tersimpan atomically.
+2. **Retry tidak boleh menggandakan business effect.** Stable transaction ID, payload hash, dan merchant-scoped unique constraint menangani lost response.
+3. **Status harus jujur.** Offline receipt bersifat provisional sampai backend mengembalikan `ACCEPTED` atau `ALREADY_PROCESSED`.
+4. **Conflict tidak boleh diam-diam dioverwrite.** Settled sale immutable; payment correction dan stock reconciliation dilakukan append-only oleh Admin.
 
-## Chosen consistency model
+## Actor dan scope
 
-Checkout is locally strongly consistent: sale, item snapshots, stock projection, outbox intent, and draft removal commit in one IndexedDB transaction. Cross-device data is eventually consistent. Backend acceptance is strongly consistent per `(merchant_id, transaction_id)` and payload hash. Inventory is deliberately eventual and may temporarily become negative.
+- **Kasir / OPERATOR:** login, checkout, melihat local transactions dan sync status, void sebelum settlement.
+- **Merchant ADMIN:** semua kemampuan kasir plus mengelola user, device, catalog/pricing, correction, discrepancy, dan audit history dalam merchant-nya.
+- **OWNER:** reserved untuk future Owner app dan tidak masuk COMPOS Operator.
+- **API + worker:** menerima transaction secara idempotent, menyimpan immutable history, lalu memproyeksikan inventory secara eventual.
 
-This preserves availability at the counter while placing hard consistency at the acceptance boundary where PostgreSQL can enforce it.
+Entry app dan Owner app tidak diimplementasikan. React Native, dynamic QRIS gateway verification, cross-device stock reservation, dan external message broker juga berada di luar scope prototype.
 
-## In scope
+## Payment semantics
 
-- Installable Operator PWA for cashier and merchant Admin.
-- Fastify API, PostgreSQL, and inventory/outbox worker.
-- Controlled Admin provisioning of Operator/Admin users and registered devices.
-- Merchant catalog/pricing management and local catalog snapshots.
-- Transaction, payment-risk correction, inventory discrepancy, and audit workflows.
+| Method      | Makna saat checkout                                                              |
+| ----------- | -------------------------------------------------------------------------------- |
+| Cash        | Bisa diverifikasi sistem dari tendered amount dan change.                        |
+| Static QRIS | Operator menyatakan pembayaran sudah dilihat; backend tidak punya gateway proof. |
+| Transfer    | Operator menyatakan transfer sudah dicek; tetap subject to correction.           |
 
-## Out of scope
+UI dan receipt tidak boleh memberi kesan QRIS/Transfer sudah bank-verified kalau memang belum ada payment provider integration.
 
-- Entry and Owner applications; `OWNER` is a reserved backend role only.
-- Public self-signup, self-serve merchant onboarding, and Owner access in this UI.
-- React Native clients, real-time stock reservation, supplier restocking, payment-gateway verification, accounting, refunds, and fiscal receipt integration.
-- RabbitMQ before measured scale requires independent delivery infrastructure.
+## Lifecycle transaksi
 
-## Success evidence
+```mermaid
+flowchart LR
+  Draft --> Confirmed["Confirmed lokal / provisional"]
+  Confirmed --> Queued["PENDING di outbox"]
+  Queued --> Settled["Backend settled"]
+  Queued --> Failed["Permanent failure / review"]
+  Draft --> Void
+  Confirmed --> Voidable["Void hanya sebelum settlement"]
+  Settled --> Correction["Append-only Admin correction"]
+```
 
-The demo and automated suite prove offline reload, reconnect settlement, lost-response retry, multi-device sales, partial batch acceptance, session/device revocation, immutable correction, inventory replay, merchant isolation, and offline-lease expiry.
+Inventory baru berubah di source of truth setelah backend acceptance dan worker processing. Device yang offline boleh menjual berdasarkan last-known catalog/stock sehingga negative stock mungkin terjadi. Itu trade-off yang eksplisit: counter availability diprioritaskan, lalu discrepancy diselesaikan lewat audited reconciliation.
 
-## Ringkasan keputusan (Bahasa Indonesia)
+## Kriteria sukses case study
 
-Masalah inti bukan sekadar UI offline, tetapi konsistensi transaksi ketika respons hilang dan beberapa device bekerja sendiri. Solusi memilih transaksi lokal atomik, ID stabil, acceptance PostgreSQL yang idempoten, dan inventori eventual. PWA mencakup Operator/Admin; aplikasi Entry, Owner, React Native, reservasi stok real-time, dan RabbitMQ belum termasuk scope.
+Solusi dianggap menjawab inti soal ketika demo dan automated tests membuktikan offline checkout, reload recovery, reconnect settlement, lost-response retry, partial batch, multi-device operation, session/device revocation, immutable correction, serta eventual inventory reconciliation.

@@ -1,15 +1,15 @@
-# ADR-009: Clean Baseline Reset
+# ADR-009 — Clean Baseline Reset untuk Prototype
 
-**Status:** Accepted for this prototype refactor
+**Status:** Diterima
 
-## Decision
+## Konteks
 
-Replace the demo PostgreSQL migration history with one clean baseline and use a new IndexedDB database name/schema. Provide guarded project reset commands and deterministic seeds.
+Refactor besar mengubah sessions, audit, catalog archive, dan local IndexedDB schema. Belum ada customer data yang harus dipertahankan.
 
-## Rationale and consequences
+## Keputusan
 
-No production data exists and a full reset was explicitly authorized. A clean baseline communicates the intended schema better than transitional migrations. The reset is destructive to this project's local app data and is documented prominently; future post-release changes must use forward migrations.
+Consolidate PostgreSQL menjadi clean baseline dan gunakan IndexedDB database baru. `db:reset` diberi guard nama database dan seed deterministic demo scenario.
 
-## Ringkasan keputusan (Bahasa Indonesia)
+## Konsekuensi dan expiry
 
-Karena masih prototype dan reset penuh telah diizinkan, schema PostgreSQL dan IndexedDB dimulai dari baseline bersih. Perintah reset harus guard-railed dan hanya menghapus data lokal proyek ini.
+Developer harus reset local data setelah perubahan ini. Keputusan otomatis berakhir sebelum live customer data: setelah itu hanya additive, reviewed, reversible migrations yang boleh dipakai dan reset production dilarang.

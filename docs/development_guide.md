@@ -1,8 +1,8 @@
 # Development Guide
 
-## Prerequisites and setup
+## Setup lokal
 
-- Node.js 22+, pnpm 10, Docker Desktop/Compose.
+Butuh Node.js 22+, pnpm 10, dan Docker Desktop/Compose.
 
 ```bash
 pnpm install
@@ -11,34 +11,35 @@ pnpm db:reset
 pnpm dev
 ```
 
-`pnpm dev` runs Operator Web (`5173`), API (`3001`), and worker. The reset command drops the `public` schema and refuses any database not named `operator_pos` or `operator_pos_*`.
+`pnpm dev` menjalankan COMPOS Operator di port `5173`, API di `3001`, dan worker. Reset menghapus schema `public` dan menolak database yang namanya bukan `operator_pos` atau `operator_pos_*`.
 
-## Environment
+## Environment variables
 
-| Variable                    | Default / purpose                                          |
+| Variable                    | Default / fungsi                                           |
 | --------------------------- | ---------------------------------------------------------- |
 | `DATABASE_URL`              | `postgres://operator:operator@localhost:5432/operator_pos` |
-| `JWT_SECRET`                | Local-only default; set a secret in deployment.            |
-| `DEVICE_ACTIVATION_CODE`    | `COMP18-DEMO`; replace securely outside demo.              |
-| `CORS_ORIGIN`               | Comma-separated allowed web origins.                       |
-| `PORT`, `HOST`, `LOG_LEVEL` | API runtime.                                               |
+| `JWT_SECRET`                | Local-only default; wajib secret nyata saat deploy.        |
+| `DEVICE_ACTIVATION_CODE`    | `COMP18-DEMO`; ganti secara aman di luar demo.             |
+| `CORS_ORIGIN`               | Daftar web origin yang diizinkan, dipisahkan koma.         |
+| `PORT`, `HOST`, `LOG_LEVEL` | API runtime configuration.                                 |
 | `VITE_API_URL`              | Browser API base; default `http://localhost:3001`.         |
-| `VITE_DEMO_MODE`            | Explicit local fixture mode only when `true`.              |
+| `VITE_DEMO_MODE`            | Local fixture mode hanya saat eksplisit `true`.            |
 
 ## Workspace boundaries
 
-- `packages/contracts`: wire schemas/DTOs only.
-- `apps/operator-web/features`: UI, queries, hooks, application services.
-- `apps/operator-web/infrastructure`: API, Dexie, browser adapters.
-- `apps/api/modules`: vertical services/repositories/mappers.
-- HTTP routes authenticate, parse, invoke, serialize; SQL stays in repositories.
+- `packages/contracts`: wire schemas dan DTO saja.
+- `apps/operator-web/features`: UI, query, hook, dan application service per feature.
+- `apps/operator-web/infrastructure`: API, Dexie, dan browser adapters.
+- `apps/api/modules`: vertical service, repository, dan mapper.
+- Route mengurus auth/parse/call/serialize; SQL tetap di repository.
 
-Feature pages may not import persistence/API infrastructure directly except type-only model imports. Durable data never belongs in Zustand.
+Feature page tidak boleh import persistence/API infrastructure langsung kecuali type-only model import. Durable state tidak boleh masuk Zustand. Demo seed juga tidak boleh bocor ke production path.
 
 ## Quality workflow
 
 ```bash
 pnpm format
+pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
@@ -47,8 +48,4 @@ pnpm build
 pnpm test:e2e
 ```
 
-Commit buildable subsystems. Do not include `.agents`, `.claude`, or local tool configuration in product commits.
-
-## Ringkasan keputusan (Bahasa Indonesia)
-
-Setup lokal cukup Docker PostgreSQL, reset guarded, lalu `pnpm dev`. Contracts adalah satu-satunya package runtime bersama. Page menggunakan feature layer; Dexie/API ada di infrastructure; SQL ada di repository API. Semua perubahan sebaiknya melewati format, lint type-aware, strict typecheck, test, dan build.
+Buat commit kecil yang tetap buildable per subsystem. Jangan commit `.agents`, `.claude`, secret, database dump, atau local tool config ke product history.

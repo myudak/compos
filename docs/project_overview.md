@@ -1,37 +1,40 @@
-# Project Overview
+# Gambaran Proyek
 
-Operator POS is an offline-first cashier application for the COMPFEST SEA 18 **Sync Without Signal** case study. It is designed for Indonesian SME counters where connectivity is intermittent, multiple devices may sell concurrently, and a completed local sale must never disappear merely because the network fails.
+COMPOS (**COMPFEST Point of Sale**) adalah aplikasi kasir offline-first untuk case study COMPFEST 18 **Sync Without Signal**. Targetnya counter UMKM Indonesia yang koneksinya kadang stabil, kadang ngilang, sementara beberapa device bisa tetap berjualan bersamaan. Prinsip utamanya simpel: transaksi yang sudah dikonfirmasi di device tidak boleh ikut hilang cuma karena internet putus.
 
-## Product outcome
+## Outcome produk
 
-A cashier can authenticate, load a merchant catalog, complete Cash, Static QRIS, or bank-transfer checkout, issue a provisional receipt, and continue selling offline. The application later settles queued sales through an idempotent backend. A merchant Admin manages cashier accounts, devices, catalog and pricing, corrections, discrepancies, and audit history.
+Kasir bisa login, memuat katalog merchant, checkout dengan Cash, Static QRIS, atau Transfer, lalu menerbitkan provisional receipt walaupun sedang offline. Saat koneksi kembali, COMPOS menyelesaikan queued sales ke backend secara idempotent. Admin merchant mengelola akun kasir, device, katalog dan harga, correction, discrepancy, serta audit history.
 
-## Correctness promises
+## Janji correctness
 
-1. A confirmed checkout is atomically persisted with its outbox intent before a receipt is shown.
-2. Every sale has a stable client-generated identifier and is accepted at most once by a merchant-scoped backend uniqueness boundary.
-3. A lost HTTP response is safe: retrying the same payload returns the existing result without creating a duplicate.
-4. Backend-settled transactions are immutable. Corrections are append-only Admin workflows.
-5. Queued data survives logout, token expiry, browser restart, and connectivity loss.
-6. Inventory is an eventually consistent projection after backend acceptance, not a checkout reservation system.
+1. Sebelum receipt tampil, checkout dan outbox intent sudah tersimpan atomically di IndexedDB.
+2. Setiap sale punya stable client-generated ID dan maksimal diterima sekali oleh uniqueness boundary milik merchant.
+3. Lost HTTP response aman: retry payload yang sama mengembalikan hasil lama tanpa membuat transaksi duplikat.
+4. Transaksi yang sudah settled bersifat immutable; perubahan dilakukan lewat append-only correction.
+5. Queued data tetap ada melewati logout, token expiry, browser restart, dan connection loss.
+6. Inventory adalah eventually consistent projection setelah backend menerima transaksi, bukan reservation system saat checkout.
 
-## Application boundary
+## Batas aplikasi
 
-This repository implements the Operator application as an installable React PWA and its API/worker. The separate Entry and Owner applications mentioned by the case study are out of scope. `OWNER` remains a reserved backend role so this client cannot accidentally become the Owner application.
+Repo ini mengimplementasikan COMPOS Operator sebagai installable React PWA beserta API dan worker-nya. Aplikasi Entry dan Owner yang disebut di case study berada di luar scope. Role `OWNER` tetap dicadangkan di backend, tetapi tidak boleh masuk ke COMPOS Operator.
 
-## Repository target
+## Struktur repo
 
 ```text
 apps/
   operator-web/    React, Vite, PWA, IndexedDB
   api/             Fastify, PostgreSQL, worker
 packages/
-  contracts/       Runtime Zod wire contracts and inferred DTOs
+  contracts/       Runtime Zod schemas dan inferred DTOs
 docs/              Product and engineering playbook
 ```
 
-The repository deliberately has only one shared runtime package. Database ownership stays inside the API; browser persistence stays inside the web application.
+Sengaja cuma ada satu shared runtime package. PostgreSQL tetap dimiliki API, sedangkan browser persistence tetap menjadi detail COMPOS Operator. Package baru hanya layak dibuat kalau memang ada minimal dua consumer nyata.
 
-## Ringkasan keputusan (Bahasa Indonesia)
+## Di luar scope
 
-Produk ini memprioritaskan transaksi kasir yang tetap aman ketika internet putus. Penjualan disimpan secara atomik di perangkat lalu dikirim ulang dengan ID tetap sampai backend menerima tepat satu transaksi. Scope implementasi hanya aplikasi Operator, API, dan worker; aplikasi Entry dan Owner tidak dibuat. Admin toko mengelola pengguna, perangkat, katalog, koreksi, dan rekonsiliasi dalam batas merchant yang sama.
+- Native React Native app dan aplikasi Owner/Entry terpisah.
+- Central inventory reservation atau strong consistency lintas device saat offline.
+- Public self-signup, payment-gateway verification untuk Static QRIS/Transfer, dan broker seperti RabbitMQ.
+- Production multi-region deployment; dokumen deployment menjelaskan jalur menuju sana, bukan mengklaim prototype sudah live-grade.

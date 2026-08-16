@@ -1,15 +1,15 @@
-# ADR-005: Merchant-Scoped Administration
+# ADR-005 — Merchant-Scoped Administration
 
-**Status:** Accepted
+**Status:** Diterima
 
-## Decision
+## Konteks
 
-Admin authority is limited to the authenticated merchant. It covers operators, devices, products, prices, reconciliation, and audit history for that merchant only.
+Satu backend melayani banyak merchant. Admin toko tidak boleh menjadi platform-wide superuser.
 
-## Rationale and consequences
+## Keputusan
 
-Merchant scope is derived from the validated session rather than accepted from request bodies. Repositories include merchant predicates, and integration tests prove cross-merchant isolation.
+Semua Admin query dan mutation mengambil merchant dari authenticated session, bukan request body. Repository selalu menerapkan tenant predicate.
 
-## Ringkasan keputusan (Bahasa Indonesia)
+## Konsekuensi
 
-Admin hanya boleh mengelola data merchant tempat akunnya terdaftar. `merchantId` selalu berasal dari sesi tervalidasi, bukan input klien.
+Cross-merchant support membutuhkan future platform role/tool terpisah. Setiap endpoint Admin wajib punya isolation test; menyembunyikan data di UI tidak dianggap security boundary.

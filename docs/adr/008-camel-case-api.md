@@ -1,15 +1,15 @@
-# ADR-008: Camel-Case API Contracts
+# ADR-008 — Canonical `camelCase` API
 
-**Status:** Accepted
+**Status:** Diterima
 
-## Decision
+## Konteks
 
-All `/v1` request and response bodies use canonical camelCase Zod contracts from `@operator/contracts`. Database snake_case is converted by explicit API mappers. Errors use `{ code, message, details?, requestId }`.
+PostgreSQL memakai `snake_case`, sedangkan TypeScript client natural-nya `camelCase`. Membiarkan dua format bocor membuat contracts mudah drift.
 
-## Rationale and consequences
+## Keputusan
 
-One runtime contract removes frontend/backend drift and makes response validation possible. Explicit mappers keep database naming from leaking into transport or UI code.
+Semua `/v1` request/response memakai canonical `camelCase` yang divalidasi Zod. Repository mapper mengubah database rows secara eksplisit. Error memakai `{ code, message, details?, requestId }`.
 
-## Ringkasan keputusan (Bahasa Indonesia)
+## Konsekuensi
 
-Kontrak HTTP menggunakan camelCase dan divalidasi Zod di server maupun web. snake_case hanya berada di lapisan database dan diubah oleh mapper eksplisit.
+Mapper menambah sedikit boilerplate, tetapi wire contract konsisten dan `SELECT *` tidak diperlukan. Perubahan casing menjadi versioned API change.

@@ -1,15 +1,15 @@
-# ADR-003: Twelve-Hour Token and 72-Hour Offline Lease
+# ADR-003 — Offline Checkout Lease 72 Jam
 
-**Status:** Accepted
+**Status:** Diterima
 
-## Decision
+## Konteks
 
-Online access tokens expire after 12 hours and reference a server-side session by JWT `jti`. A successful online login grants a local checkout lease for 72 hours. Token expiry pauses synchronization; lease expiry blocks new checkout but never deletes readable or queued data.
+Kasir perlu tetap jualan saat token online 12 jam sudah expired, tetapi unlimited offline authority akan memperbesar risiko akun/device yang dicabut masih dipakai.
 
-## Rationale and consequences
+## Keputusan
 
-An offline POS cannot revalidate every action, but unlimited offline authorization would retain access indefinitely after revocation. The split policy keeps short online sessions while providing a bounded continuity window. Logout, PIN reset, account deactivation, and device revocation invalidate relevant server sessions at once when online.
+Successful online authentication membuat local offline lease maksimal 72 jam. Setelah token expired tetapi lease valid, checkout lokal boleh lanjut dan sync pause. Setelah lease habis, data tetap readable/queued tetapi checkout baru diblokir sampai online login.
 
-## Ringkasan keputusan (Bahasa Indonesia)
+## Konsekuensi dan revisit trigger
 
-Token online berlaku 12 jam, sedangkan hak checkout offline berlaku maksimal 72 jam sejak login online terakhir. Setelah lease habis data tetap aman dan dapat dibaca, tetapi transaksi baru menunggu autentikasi ulang.
+Revocation tidak selalu langsung diketahui device offline. Merchant mendapat continuity tiga hari dengan bounded risk. Durasi harus ditinjau lagi berdasarkan fraud policy, pola outage, dan kemampuan remote device management production.

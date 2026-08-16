@@ -1,15 +1,28 @@
-# Testing Strategy
+# Strategi Testing
+
+Tujuan test COMPOS bukan cuma mengejar coverage, tetapi membuktikan invariants paling berisiko: local atomicity, durable recovery, idempotency, merchant isolation, session policy, dan immutable settlement.
 
 ## Test pyramid
 
-| Layer                  | Scope                                                                                                                                                                              |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit                   | Payment rules, transaction construction, retry/backoff transitions, offline lease, operator/final-Admin policy, Zod contracts.                                                     |
-| Browser persistence    | Atomic sale/outbox, negative local projection, ordered draft saves, restart recovery, void, session expiry with fake IndexedDB.                                                    |
-| PostgreSQL integration | Isolated `operator_pos_test`: idempotency, lost response, two devices, partial/mass batch, immutable correction, worker replay, revocation, user/catalog policy, tenant isolation. |
-| Playwright             | Eight production-build cases: offline reload, reconnect, dropped response, two contexts, partial rejection, Admin user, Admin catalog, lease expiry.                               |
+| Layer                           | Fokus                                                                                                                      |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Unit                            | Payment rules, transaction construction, sync transition/backoff, offline lease, permission, last-admin protection.        |
+| Browser persistence integration | Atomic checkout, ordered draft, restart/void, outbox recovery, catalog replacement, expired session dengan fake IndexedDB. |
+| API/PostgreSQL integration      | Login/logout/revocation, tenant isolation, admin user/catalog, lost response, partial batch, correction, worker replay.    |
+| Playwright                      | Production-build user journey lintas offline/reload/reconnect dan multi-context.                                           |
 
-## Commands
+## Skenario E2E utama
+
+1. Offline checkout lalu browser reload.
+2. Reconnect dan automatic settlement.
+3. Successful response dijatuhkan, lalu retry exactly-once.
+4. Dua browser/device context pada merchant yang sama.
+5. Partial batch rejection.
+6. Admin membuat/deactivate kasir dan permission tetap enforce.
+7. Admin mengubah harga/archive product lalu catalog refresh.
+8. Offline lease expired: data tetap ada, checkout baru diblokir.
+
+## Command
 
 ```bash
 pnpm test
@@ -18,19 +31,8 @@ pnpm test:e2e
 pnpm ci
 ```
 
-Integration tests recreate only the exact guarded database `operator_pos_test`, migrate/seed it, run an API on port 3101, then terminate sessions and drop the database. Playwright requires the main project database to be migrated/seeded and starts/reuses API `3001` plus preview `4173`.
+Integration test memakai database terisolasi `operator_pos_test`. Playwright menjalankan production build dan menyimpan trace/screenshot saat failure. CI menjalankan frozen install, format, type-aware lint, strict typecheck, unit/integration test, build, lalu browser scenarios dengan artifact on failure.
 
-## Acceptance gates
+## Evidence dan batasannya
 
-- Formatting, lint, typecheck, unit, integration, E2E, and build must pass.
-- Failures retain Playwright screenshot/video/trace in CI.
-- Tests assert externally observable state and database invariants, not implementation call counts.
-- Lost-response tests intentionally allow the first backend commit and discard its response before retry.
-
-## Coverage gaps to revisit
-
-Performance/load at 500+ merchants, long-running browser storage quota, real device reboot, backup restore drill, accessibility audit, and chaos against a deployed multi-replica topology remain pre-production activities.
-
-## Ringkasan keputusan (Bahasa Indonesia)
-
-Test tidak hanya memeriksa happy path. Fake IndexedDB membuktikan atomic local write, PostgreSQL terisolasi membuktikan constraint dan worker, sedangkan Playwright membuktikan delapan alur demo pada production build. Load, backup-restore, quota browser, dan accessibility audit masih perlu sebelum produksi nyata.
+Automated tests adalah executable evidence untuk behavior yang repeatable. Demo manual tetap diperlukan untuk UX dan presentasi, sedangkan load, security, accessibility, serta restore drills perlu dilakukan sebelum production. Test yang bergantung ke time/random/network harus memakai injected ports atau controlled fixtures supaya deterministic.
