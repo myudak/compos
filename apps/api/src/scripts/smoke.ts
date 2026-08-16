@@ -57,6 +57,7 @@ const transaction = {
 }
 
 const body = JSON.stringify({
+  schemaVersion: 1,
   merchantId: login.merchantId,
   deviceId,
   batchId: randomUUID(),

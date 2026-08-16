@@ -19,12 +19,16 @@
     "test:e2e": "pnpm --filter @operator/web test:e2e",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "ci": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:integration && pnpm build && pnpm test:e2e",
+    "docs:check": "node scripts/check-markdown-links.mjs",
+    "ci": "pnpm format:check && pnpm docs:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:integration && pnpm build && pnpm test:e2e",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:reset": "pnpm --filter @operator/api db:reset",
     "db:migrate": "pnpm --filter @operator/api db:migrate",
     "db:seed": "pnpm --filter @operator/api db:seed",
+    "db:seed:built": "node apps/api/dist/scripts/seed.js",
+    "start:hosted": "node apps/api/dist/scripts/migrate.js && node apps/api/dist/server.js",
+    "worker:hosted": "node apps/api/dist/scripts/migrate.js && node apps/api/dist/worker-entry.js",
     "preview": "pnpm --filter @operator/web preview"
   },
   "devDependencies": {

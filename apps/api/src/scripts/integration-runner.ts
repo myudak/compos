@@ -44,7 +44,10 @@ try {
   )
   await admin.query(`DROP DATABASE IF EXISTS ${testDatabaseName}`)
   await admin.query(`CREATE DATABASE ${testDatabaseName}`)
-  await run(["--filter", "@operator/api", "db:migrate"])
+  await Promise.all([
+    run(["--filter", "@operator/api", "db:migrate"]),
+    run(["--filter", "@operator/api", "db:migrate"]),
+  ])
   await run(["--filter", "@operator/api", "db:seed"])
   server = spawnPnpm(
     ["--filter", "@operator/api", "exec", "tsx", "src/server.ts"],

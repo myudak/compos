@@ -16,6 +16,7 @@ import { registerOperatorRoutes } from "./routes/operators.js"
 import { registerProductRoutes } from "./routes/products.js"
 import { registerSyncRoutes } from "./routes/sync.js"
 import { registerTransactionRoutes } from "./routes/transactions.js"
+import { registerWebHosting } from "./web-hosting.js"
 
 export async function buildApp(pool: DatabasePool = defaultPool) {
   const app = Fastify({
@@ -71,6 +72,11 @@ export async function buildApp(pool: DatabasePool = defaultPool) {
   registerDiscrepancyRoutes(app, pool)
   registerOperatorRoutes(app, pool)
   registerProductRoutes(app, pool)
+
+  await registerWebHosting(app, {
+    enabled: config.SERVE_WEB,
+    root: config.WEB_DIST_PATH,
+  })
 
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof ZodError) {

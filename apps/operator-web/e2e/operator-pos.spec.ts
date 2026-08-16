@@ -10,6 +10,13 @@ async function login(page: Page, role: "OPERATOR" | "ADMIN" = "OPERATOR") {
   await page.getByLabel("PIN operator").fill(role === "ADMIN" ? "9999" : "1234")
   await page.getByRole("button", { name: "Aktifkan & masuk" }).click()
   await expect(page.getByText(role === "ADMIN" ? "Dimas Admin" : "Rani A.").first()).toBeVisible()
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready
+    if (navigator.serviceWorker.controller) return
+    await new Promise<void>((resolve) => {
+      navigator.serviceWorker.addEventListener("controllerchange", () => resolve(), { once: true })
+    })
+  })
 }
 
 async function checkout(page: Page) {

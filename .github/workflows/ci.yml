@@ -43,6 +43,7 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm db:reset
       - run: pnpm format:check
+      - run: pnpm docs:check
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test

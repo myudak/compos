@@ -1,9 +1,16 @@
 import { apiErrorResponseSchema } from "@operator/contracts"
 import { z, type ZodType } from "zod"
 
-export const API_URL =
-  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ??
-  "http://localhost:3001"
+export function resolveApiUrl(configuredUrl: string | undefined, isDevelopment: boolean) {
+  const normalizedUrl = configuredUrl?.trim().replace(/\/+$/, "")
+  if (normalizedUrl) return normalizedUrl
+  return isDevelopment ? "http://localhost:3001" : ""
+}
+
+export const API_URL = resolveApiUrl(
+  import.meta.env.VITE_API_URL as string | undefined,
+  import.meta.env.DEV,
+)
 
 export class ApiError extends Error {
   constructor(

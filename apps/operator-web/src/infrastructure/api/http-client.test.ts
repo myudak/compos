@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { z } from "zod"
 
-import { requestJson } from "./http-client"
+import { requestJson, resolveApiUrl } from "./http-client"
 
 const responseSchema = z.object({ ok: z.literal(true) })
 
@@ -27,6 +27,20 @@ describe("requestJson", () => {
     })
 
     expect(requestHeaders(fetchMock)).toEqual({ "content-type": "application/json" })
+  })
+})
+
+describe("resolveApiUrl", () => {
+  it("normalizes an explicitly configured URL", () => {
+    expect(resolveApiUrl(" https://api.example.com/// ", false)).toBe("https://api.example.com")
+  })
+
+  it("uses the local API during development", () => {
+    expect(resolveApiUrl(undefined, true)).toBe("http://localhost:3001")
+  })
+
+  it("uses same-origin requests in a production build", () => {
+    expect(resolveApiUrl(undefined, false)).toBe("")
   })
 })
 

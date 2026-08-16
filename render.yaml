@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+
+services:
+  - type: web
+    name: compos-demo
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start:hosted
+    initialDeployHook: pnpm db:seed:built
+    healthCheckPath: /health
+    autoDeployTrigger: off
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: compos-demo-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_VERSION
+        value: "22"
+      - key: LOG_LEVEL
+        value: info
+      - key: SERVE_WEB
+        value: "true"
+      - key: VITE_DEMO_MODE
+        value: "false"
+      - key: DEVICE_ACTIVATION_CODE
+        value: COMP18-DEMO
+      - key: DEMO_MERCHANT_CODE
+        value: KEDAI-NUSA
+
+  - type: worker
+    name: compos-inventory-worker
+    runtime: node
+    plan: starter
+    region: singapore
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm worker:hosted
+    autoDeployTrigger: off
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: compos-demo-db
+          property: connectionString
+      - key: NODE_VERSION
+        value: "22"
+      - key: LOG_LEVEL
+        value: info
+
+databases:
+  - name: compos-demo-db
+    databaseName: operator_pos
+    user: operator
+    plan: free
+    region: singapore
+    ipAllowList: []
