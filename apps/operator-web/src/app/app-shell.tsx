@@ -197,9 +197,6 @@ function DesktopSidebar(props: {
         <img src="/brand/compos-icon.png" alt="COMPOS" className="size-8 rounded-md object-cover" />
         <div>
           <div className="text-sm font-semibold tracking-[0.08em]">COMPOS</div>
-          <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-            Operator / local-first
-          </div>
         </div>
       </div>
       <div className="px-2 py-3">
@@ -218,10 +215,7 @@ function DesktopSidebar(props: {
           <IconChevronDown className="size-3.5 text-muted-foreground" />
         </button>
       </div>
-      <nav className="grid gap-1 px-2">
-        <div className="px-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Workspace
-        </div>
+      <nav className="grid gap-1 px-2 pt-1">
         {props.items.map((item) => {
           const Icon = item.icon
           return (

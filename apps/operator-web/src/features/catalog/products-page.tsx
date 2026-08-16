@@ -39,7 +39,6 @@ export function ProductsPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Offline catalog snapshot"
         title="Produk & stok lokal"
         description="Katalog ini tersimpan di perangkat dan tetap dapat dibaca tanpa jaringan. Stok adalah proyeksi eventual, bukan reservasi real-time."
         actions={

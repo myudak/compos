@@ -40,7 +40,6 @@ export function TransactionsPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Local transaction ledger"
         title="Transaksi"
         description="Semua penjualan dari perangkat ini, termasuk status sync dan settlement saat offline."
       />

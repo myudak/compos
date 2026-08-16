@@ -26,7 +26,6 @@ export function ReconciliationPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Exception workflow"
         title="Reconciliation desk"
         description="Koreksi pembayaran dan selesaikan proyeksi stok tanpa pernah mengubah histori transaksi asli."
         actions={

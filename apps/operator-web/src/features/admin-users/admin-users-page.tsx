@@ -13,7 +13,6 @@ export function AdminUsersPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Merchant-scoped administration"
         title="Akun & perangkat"
         description="Kelola kasir, Admin, PIN, dan akses device tanpa membuka data merchant lain."
         actions={

@@ -41,7 +41,6 @@ export function SettingsPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Registered device"
         title="Pengaturan perangkat"
         description="Identitas instalasi ini disimpan secara lokal dan terikat ke merchant."
         actions={

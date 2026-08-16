@@ -66,10 +66,7 @@ export function LoginPage({
             <h1 className="text-3xl font-semibold tracking-[-0.05em]">Aktifkan perangkat</h1>
           </div>
           <div className="hidden lg:block">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
-              Registered checkout
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">Aktifkan counter</h2>
+            <h2 className="text-2xl font-semibold tracking-[-0.04em]">Aktifkan counter</h2>
           </div>
           <p className="mt-2 text-xs leading-5 text-muted-foreground">
             Aktivasi pertama membutuhkan jaringan. Setelah itu, session dan katalog tersimpan untuk
@@ -158,15 +155,9 @@ function LoginMarketing() {
         <img src="/brand/compos-icon.png" alt="COMPOS" className="size-9 rounded-md object-cover" />
         <div>
           <div className="text-sm font-semibold tracking-[0.08em]">COMPOS</div>
-          <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-            Operator / local-first
-          </div>
         </div>
       </div>
       <div className="max-w-2xl">
-        <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-primary">
-          Sync without signal
-        </p>
         <h1 className="max-w-xl text-5xl font-semibold leading-[1.05] tracking-[-0.06em]">
           Jual sekarang.
           <br />

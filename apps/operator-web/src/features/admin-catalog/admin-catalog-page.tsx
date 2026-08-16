@@ -35,7 +35,6 @@ export function AdminCatalogPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Online-only administration"
         title="Katalog & harga"
         description="Perubahan berlaku pada refresh berikutnya; transaksi offline lama tetap membawa snapshot harga historis."
         actions={

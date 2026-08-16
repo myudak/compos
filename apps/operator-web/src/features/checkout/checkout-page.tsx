@@ -79,9 +79,6 @@ export function CheckoutPage() {
         <header className="border-b px-4 py-4 sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
-                Operator checkout · offline-first
-              </p>
               <h1 className="text-xl font-semibold tracking-[-0.04em] sm:text-2xl">
                 Selamat bekerja, {session?.operator.name ?? "Operator"}.
               </h1>

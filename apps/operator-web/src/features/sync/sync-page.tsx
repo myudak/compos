@@ -33,7 +33,6 @@ export function SyncPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Observable & recoverable"
         title="Sync & Data"
         description="Lihat local outbox, hasil acceptance backend, dan retry yang perlu perhatian."
         actions={
