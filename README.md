@@ -23,7 +23,6 @@ https://github.com/user-attachments/assets/8e7f4339-7f47-4fe9-8533-17880da089f4
     <a href="https://fastify.dev/"><img src="https://img.shields.io/badge/Fastify-5-111111?style=for-the-badge&amp;logo=fastify&amp;logoColor=white" alt="Fastify 5" /></a>
     <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-17-4169E1?style=for-the-badge&amp;logo=postgresql&amp;logoColor=white" alt="PostgreSQL 17" /></a>
     <img src="https://img.shields.io/badge/PWA-Offline_Ready-06B6D4?style=for-the-badge&amp;logo=pwa&amp;logoColor=white" alt="Offline-ready PWA" />
-    <a href="https://github.com/myudak/compos/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/myudak/compos/ci.yml?branch=main&amp;style=for-the-badge&amp;label=quality" alt="COMPOS quality gates" /></a>
   </p>
 
   <p>
