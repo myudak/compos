@@ -92,12 +92,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="relative z-10 lg:pl-[212px]">
         <header className="sticky top-0 z-20 flex h-[62px] items-center justify-between border-b bg-background/86 px-3 backdrop-blur-xl sm:px-5">
           <div className="flex items-center gap-2 lg:hidden">
-            <div className="grid size-8 place-items-center rounded-md bg-primary text-xs font-black text-primary-foreground">
-              OP
-            </div>
+            <img src="/brand/compos-icon.png" alt="" className="size-8 rounded-md object-cover" />
             <div>
               <div className="text-xs font-semibold">{merchant?.name ?? "Merchant"}</div>
-              <div className="text-[9px] text-muted-foreground">Operator POS</div>
+              <div className="text-[9px] text-muted-foreground">COMPOS Operator</div>
             </div>
           </div>
           <div className="hidden min-w-0 items-center gap-2 lg:flex">
@@ -196,13 +194,11 @@ function DesktopSidebar(props: {
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[212px] flex-col border-r bg-background/92 backdrop-blur-xl lg:flex">
       <div className="flex h-[62px] items-center gap-2.5 border-b px-4">
-        <div className="grid size-8 place-items-center rounded-md bg-primary text-base font-black text-primary-foreground">
-          OP
-        </div>
+        <img src="/brand/compos-icon.png" alt="COMPOS" className="size-8 rounded-md object-cover" />
         <div>
-          <div className="text-sm font-semibold">operator.</div>
+          <div className="text-sm font-semibold tracking-[0.08em]">COMPOS</div>
           <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-            POS / local-first
+            Operator / local-first
           </div>
         </div>
       </div>

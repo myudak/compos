@@ -58,9 +58,11 @@ export function LoginPage({
       <section className="relative grid place-items-center p-5 sm:p-10">
         <form onSubmit={submit} className="w-full max-w-sm">
           <div className="mb-7 lg:hidden">
-            <div className="mb-5 grid size-10 place-items-center rounded-md bg-primary text-sm font-black text-primary-foreground">
-              OP
-            </div>
+            <img
+              src="/brand/compos-icon.png"
+              alt="COMPOS"
+              className="mb-5 size-10 rounded-md object-cover"
+            />
             <h1 className="text-3xl font-semibold tracking-[-0.05em]">Aktifkan perangkat</h1>
           </div>
           <div className="hidden lg:block">
@@ -153,13 +155,11 @@ function LoginMarketing() {
   return (
     <section className="relative hidden flex-col justify-between border-r p-10 lg:flex">
       <div className="flex items-center gap-2.5">
-        <div className="grid size-9 place-items-center rounded-md bg-primary text-sm font-black text-primary-foreground">
-          OP
-        </div>
+        <img src="/brand/compos-icon.png" alt="COMPOS" className="size-9 rounded-md object-cover" />
         <div>
-          <div className="text-sm font-semibold">operator.</div>
+          <div className="text-sm font-semibold tracking-[0.08em]">COMPOS</div>
           <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-            POS / local-first
+            Operator / local-first
           </div>
         </div>
       </div>
@@ -186,9 +186,7 @@ function LoginMarketing() {
           ))}
         </div>
       </div>
-      <div className="text-[10px] text-muted-foreground">
-        COMPFEST 18 · Operator reliability prototype
-      </div>
+      <div className="text-[10px] text-muted-foreground">COMPFEST 18 · Sync Without Signal</div>
     </section>
   )
 }

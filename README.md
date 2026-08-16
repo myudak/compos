@@ -1,5 +1,7 @@
 # COMPOS
 
+![COMPOS — Sync Without Signal](apps/operator-web/public/brand/compos-sync-without-signal.png)
+
 **COMPFEST Point of Sale** — aplikasi kasir offline-first untuk case study COMPFEST 18 _Sync Without Signal_. COMPOS tetap bisa mencatat penjualan saat internet putus, menyimpan antrean transaksi di device, lalu melakukan sync yang idempotent ketika koneksi balik.
 
 Repo ini berisi:
