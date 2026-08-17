@@ -1,13 +1,13 @@
 import { buildApp } from "./app.js"
 import { config } from "./config.js"
-import { pool } from "./db.js"
+import { adminPool, appPools, pool, reportingPool } from "./db.js"
 
-const app = await buildApp(pool)
+const app = await buildApp(appPools)
 
 async function shutdown(signal: string) {
   app.log.info({ signal }, "shutting down")
   await app.close()
-  await pool.end()
+  await Promise.all([pool.end(), adminPool.end(), reportingPool.end()])
   process.exit(0)
 }
 

@@ -1,12 +1,12 @@
 import { z } from "zod"
 
-import { operatorAppRoleSchema } from "./primitives.js"
+import { roleSchema } from "./primitives.js"
 
 export const operatorSummarySchema = z.object({
   id: z.string().min(1),
   code: z.string().min(2).max(32).optional(),
   name: z.string().min(1).max(120),
-  role: operatorAppRoleSchema,
+  role: roleSchema,
 })
 
 export const loginRequestSchema = z.object({

@@ -116,7 +116,13 @@ export class TransactionAcceptanceRepository {
     await client.query(
       `INSERT INTO backend_outbox_events (
         id, merchant_id, aggregate_type, aggregate_id, event_type, payload
-      ) VALUES ($1,$2,'TRANSACTION',$3,'TRANSACTION_SETTLED',$4::jsonb)`,
+      ) VALUES ($1,$2,'TRANSACTION',$3,'INVENTORY_TRANSACTION_SETTLED',$4::jsonb)`,
+      [randomUUID(), merchantId, transactionId, JSON.stringify({ transactionId })],
+    )
+    await client.query(
+      `INSERT INTO backend_outbox_events (
+        id, merchant_id, aggregate_type, aggregate_id, event_type, payload
+      ) VALUES ($1,$2,'TRANSACTION',$3,'REPORTING_TRANSACTION_SETTLED',$4::jsonb)`,
       [randomUUID(), merchantId, transactionId, JSON.stringify({ transactionId })],
     )
   }

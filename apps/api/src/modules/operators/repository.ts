@@ -21,7 +21,7 @@ export class OperatorRepository {
     const result = await this.pool.query<OperatorRow>(
       `SELECT id, code, name, role, active, created_at, updated_at
        FROM operators
-       WHERE merchant_id = $1
+       WHERE merchant_id = $1 AND role IN ('OPERATOR','ADMIN')
        ORDER BY active DESC, role, name`,
       [merchantId],
     )
@@ -32,7 +32,7 @@ export class OperatorRepository {
     const result = await client.query<OperatorRow>(
       `SELECT id, code, name, role, active, created_at, updated_at
        FROM operators
-       WHERE merchant_id = $1 AND id = $2
+       WHERE merchant_id = $1 AND id = $2 AND role IN ('OPERATOR','ADMIN')
        FOR UPDATE`,
       [merchantId, operatorId],
     )

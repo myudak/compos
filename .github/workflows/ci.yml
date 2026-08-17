@@ -49,6 +49,7 @@ jobs:
       - run: pnpm test
       - run: pnpm test:integration
       - run: pnpm build
+      - run: pnpm test:load
       - run: pnpm test:e2e
       - name: Upload Playwright artifacts
         if: failure()

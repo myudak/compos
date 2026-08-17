@@ -7,6 +7,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify"
 type WebHostingOptions = {
   enabled: boolean
   root: string
+  ownerRoot?: string
 }
 
 const RESERVED_PATH_PREFIXES = ["/v1", "/health", "/metrics"]
@@ -20,6 +21,16 @@ export async function registerWebHosting(app: FastifyInstance, options: WebHosti
     root,
     wildcard: false,
   })
+  const ownerRoot = options.ownerRoot ? resolve(options.ownerRoot) : undefined
+  if (ownerRoot) {
+    await assertWebBuildExists(ownerRoot, "Owner")
+    await app.register(fastifyStatic, {
+      root: ownerRoot,
+      prefix: "/owner/",
+      wildcard: false,
+      decorateReply: false,
+    })
+  }
 
   app.setNotFoundHandler((request, reply) => {
     if (!isBrowserNavigation(request)) {
@@ -29,15 +40,21 @@ export async function registerWebHosting(app: FastifyInstance, options: WebHosti
         requestId: request.id,
       })
     }
-    return reply.type("text/html; charset=utf-8").sendFile("index.html")
+    const pathname = new URL(request.raw.url ?? "/", "http://compos.local").pathname
+    if (ownerRoot && isPathWithin(pathname, "/owner")) {
+      return reply.type("text/html; charset=utf-8").sendFile("index.html", ownerRoot)
+    }
+    return reply.type("text/html; charset=utf-8").sendFile("index.html", root)
   })
 }
 
-async function assertWebBuildExists(root: string) {
+async function assertWebBuildExists(root: string, label?: string) {
   try {
     await access(resolve(root, "index.html"))
   } catch {
-    throw new Error(`SERVE_WEB is enabled but no web build was found at '${root}'`)
+    throw new Error(
+      `SERVE_WEB is enabled but no ${label ? `${label} ` : ""}web build was found at '${root}'`,
+    )
   }
 }
 

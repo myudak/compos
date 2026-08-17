@@ -13,7 +13,7 @@ const listQuerySchema = z.object({
 export function registerTransactionRoutes(app: FastifyInstance, pool: DatabasePool) {
   const repository = new TransactionQueryRepository(pool)
   app.get("/v1/transactions", async (request) => {
-    const identity = await requireAuth(request, undefined, pool)
+    const identity = await requireAuth(request, ["OPERATOR", "ADMIN"], pool)
     const query = listQuerySchema.parse(request.query)
     const transactions = await repository.list(
       identity.merchantId,
@@ -24,7 +24,7 @@ export function registerTransactionRoutes(app: FastifyInstance, pool: DatabasePo
   })
 
   app.get("/v1/transactions/:transactionId", async (request, reply) => {
-    const identity = await requireAuth(request, undefined, pool)
+    const identity = await requireAuth(request, ["OPERATOR", "ADMIN"], pool)
     const { transactionId } = z.object({ transactionId: z.string() }).parse(request.params)
     const detail = await repository.detail(identity.merchantId, transactionId)
     if (!detail) {

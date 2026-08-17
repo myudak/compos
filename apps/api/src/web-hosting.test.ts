@@ -58,6 +58,25 @@ describe("registerWebHosting", () => {
     await app.close()
   })
 
+  it("serves Owner assets and deep links under an isolated scope", async () => {
+    const root = await createWebBuild()
+    const ownerRoot = await createWebBuild("COMPOS Owner", "console.log('OWNER')")
+    const app = Fastify()
+    await registerWebHosting(app, { enabled: true, root, ownerRoot })
+
+    const asset = await app.inject({ method: "GET", url: "/owner/app.js" })
+    const navigation = await app.inject({
+      method: "GET",
+      url: "/owner/insights/latest",
+      headers: { accept: "text/html" },
+    })
+
+    expect(asset.body).toBe("console.log('OWNER')")
+    expect(navigation.statusCode).toBe(200)
+    expect(navigation.body).toContain("COMPOS Owner")
+    await app.close()
+  })
+
   it("fails startup when web hosting is enabled without a build", async () => {
     const root = await mkdtemp(join(tmpdir(), "compos-missing-web-"))
     temporaryDirectories.push(root)
@@ -71,12 +90,12 @@ describe("registerWebHosting", () => {
   })
 })
 
-async function createWebBuild() {
+async function createWebBuild(title = "COMPOS demo", script = "console.log('COMPOS')") {
   const root = await mkdtemp(join(tmpdir(), "compos-web-"))
   temporaryDirectories.push(root)
   await Promise.all([
-    writeFile(join(root, "index.html"), "<!doctype html><title>COMPOS demo</title>"),
-    writeFile(join(root, "app.js"), "console.log('COMPOS')"),
+    writeFile(join(root, "index.html"), `<!doctype html><title>${title}</title>`),
+    writeFile(join(root, "app.js"), script),
   ])
   return root
 }

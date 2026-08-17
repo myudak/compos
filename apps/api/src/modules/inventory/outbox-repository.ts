@@ -17,20 +17,21 @@ type EventRow = {
 export class BackendOutboxRepository {
   constructor(private readonly pool: DatabasePool) {}
 
-  async claim(limit: number) {
+  async claim(limit: number, eventTypes: string[]) {
     const result = await this.pool.query<{ id: string }>(
       `UPDATE backend_outbox_events
        SET claimed_at = now(), attempt_count = attempt_count + 1
        WHERE id IN (
          SELECT id FROM backend_outbox_events
          WHERE processed_at IS NULL
+           AND event_type = ANY($2::text[])
            AND (claimed_at IS NULL OR claimed_at < now() - interval '5 minutes')
          ORDER BY created_at
          LIMIT $1
          FOR UPDATE SKIP LOCKED
        )
        RETURNING id`,
-      [limit],
+      [limit, eventTypes],
     )
     return result.rows.map((row) => row.id)
   }

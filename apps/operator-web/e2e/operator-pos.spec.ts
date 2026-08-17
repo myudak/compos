@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto"
 
 import { expect, test, type BrowserContext, type Page } from "@playwright/test"
 
-const apiUrl = "http://127.0.0.1:3001"
+const apiUrl = "http://127.0.0.1:3102"
 
 async function login(page: Page, role: "OPERATOR" | "ADMIN" = "OPERATOR") {
   await page.goto("/")

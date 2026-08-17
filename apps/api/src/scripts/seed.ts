@@ -96,6 +96,7 @@ const products = [
 
 const cashierPinHash = await bcrypt.hash("1234", 10)
 const adminPinHash = await bcrypt.hash("9999", 10)
+const ownerPinHash = await bcrypt.hash("7777", 10)
 
 await withTransaction(pool, async (client) => {
   await client.query(
@@ -110,11 +111,12 @@ await withTransaction(pool, async (client) => {
     ) VALUES
       ('OPR-RANI-07','MRC-KEDAI-NUSA','RANI','Rani A.','OPERATOR',$1),
       ('ADM-NUSA-01','MRC-KEDAI-NUSA','ADMIN','Dimas Admin','ADMIN',$2),
-      ('ADM-LAUT-01','MRC-TOKO-LAUT','ADMIN','Sari Admin','ADMIN',$2)
+      ('ADM-LAUT-01','MRC-TOKO-LAUT','ADMIN','Sari Admin','ADMIN',$2),
+      ('OWN-NUSA-01','MRC-KEDAI-NUSA','OWNER','Nusa Owner','OWNER',$3)
      ON CONFLICT (merchant_id, code) DO UPDATE
        SET name = EXCLUDED.name, role = EXCLUDED.role,
            pin_hash = EXCLUDED.pin_hash, active = true, updated_at = now()`,
-    [cashierPinHash, adminPinHash],
+    [cashierPinHash, adminPinHash, ownerPinHash],
   )
 
   for (const product of products) {

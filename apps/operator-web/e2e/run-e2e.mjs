@@ -15,15 +15,26 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 try {
   const api = startNode(join(repositoryRoot, "apps/api/dist/server.js"), [], repositoryRoot, {
     LOG_LEVEL: "warn",
+    PORT: "3102",
+    CORS_ORIGIN: "http://127.0.0.1:4173,http://127.0.0.1:4174",
+  })
+  startNode(join(repositoryRoot, "apps/api/dist/worker-entry.js"), [], repositoryRoot, {
+    LOG_LEVEL: "warn",
   })
   const preview = startNode(
     join(webRoot, "node_modules/vite/bin/vite.js"),
     ["preview", "--host", "127.0.0.1", "--port", "4173"],
     webRoot,
   )
+  const ownerPreview = startNode(
+    join(repositoryRoot, "apps/owner-web/node_modules/vite/bin/vite.js"),
+    ["preview", "--host", "127.0.0.1", "--port", "4174"],
+    join(repositoryRoot, "apps/owner-web"),
+  )
   await Promise.all([
-    waitForUrl("http://127.0.0.1:3001/health", api),
+    waitForUrl("http://127.0.0.1:3102/health", api),
     waitForUrl("http://127.0.0.1:4173", preview),
+    waitForUrl("http://127.0.0.1:4174/owner/", ownerPreview),
   ])
   await runPlaywright()
 } finally {
@@ -57,7 +68,7 @@ async function waitForUrl(url, child) {
 
 async function runPlaywright() {
   const cli = join(webRoot, "node_modules/@playwright/test/cli.js")
-  const child = startNode(cli, ["test"], webRoot)
+  const child = startNode(cli, ["test", ...process.argv.slice(2)], webRoot)
   const [code] = await once(child, "exit")
   children.splice(children.indexOf(child), 1)
   if (code !== 0) throw new Error(`Playwright exited with code ${code ?? "null"}`)

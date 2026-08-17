@@ -37,10 +37,19 @@ export async function activateAndLogin(input: {
       deviceId: input.device.id,
     }),
   })
+  const operatorRole = result.operator.role
+  if (operatorRole === "OWNER") {
+    window.location.assign("/owner/")
+    throw new Error("Akun Owner dibuka melalui COMPOS Owner.")
+  }
   const session: AuthSession = {
     token: result.token,
     merchantId: result.merchantId,
-    operator: result.operator,
+    operator: {
+      id: result.operator.id,
+      name: result.operator.name,
+      role: operatorRole,
+    },
     expiresAt: new Date(Date.now() + result.expiresInSeconds * 1_000).toISOString(),
     offlineLeaseExpiresAt: result.offlineLeaseExpiresAt,
   }

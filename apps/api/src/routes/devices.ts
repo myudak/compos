@@ -4,26 +4,38 @@ import { z } from "zod"
 
 import { requireAuth } from "../auth.js"
 import type { DatabasePool } from "../db.js"
+import { adminMutationRateLimit } from "../http/rate-limits.js"
 import { DeviceService } from "../modules/devices/service.js"
 
 const paramsSchema = z.object({ deviceId: z.string().min(1) })
 
-export function registerDeviceRoutes(app: FastifyInstance, pool: DatabasePool) {
-  const service = new DeviceService(pool)
+export function registerDeviceRoutes(
+  app: FastifyInstance,
+  operationalPool: DatabasePool,
+  adminPool: DatabasePool = operationalPool,
+) {
+  const operationalService = new DeviceService(operationalPool)
+  const adminService = new DeviceService(adminPool)
 
   app.post("/v1/devices/register", async (request, reply) => {
-    const registered = await service.register(registerDeviceRequestSchema.parse(request.body))
+    const registered = await operationalService.register(
+      registerDeviceRequestSchema.parse(request.body),
+    )
     return reply.code(201).send(registered)
   })
 
   app.get("/v1/admin/devices", async (request) => {
-    const identity = await requireAuth(request, ["ADMIN"], pool)
-    return { devices: await service.list(identity.merchantId) }
+    const identity = await requireAuth(request, ["ADMIN"], adminPool)
+    return { devices: await adminService.list(identity.merchantId) }
   })
 
-  app.post("/v1/devices/:deviceId/revoke", async (request) => {
-    const identity = await requireAuth(request, ["ADMIN"], pool)
-    const { deviceId } = paramsSchema.parse(request.params)
-    return service.revoke(identity, deviceId)
-  })
+  app.post(
+    "/v1/devices/:deviceId/revoke",
+    { config: { rateLimit: adminMutationRateLimit } },
+    async (request) => {
+      const identity = await requireAuth(request, ["ADMIN"], adminPool)
+      const { deviceId } = paramsSchema.parse(request.params)
+      return adminService.revoke(identity, deviceId)
+    },
+  )
 }

@@ -5,7 +5,11 @@ import { BackendOutboxRepository } from "./outbox-repository.js"
 
 export async function processBackendOutbox(pool: DatabasePool, limit = 50) {
   const repository = new BackendOutboxRepository(pool)
-  const claimedIds = await repository.claim(limit)
+  const claimedIds = await repository.claim(limit, [
+    "INVENTORY_TRANSACTION_SETTLED",
+    "TRANSACTION_CORRECTED",
+    "INVENTORY_RECONCILED",
+  ])
   let processed = 0
   for (const eventId of claimedIds) {
     try {

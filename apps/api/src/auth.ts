@@ -1,4 +1,4 @@
-import type { OperatorAppRole } from "@operator/contracts"
+import type { Role } from "@operator/contracts"
 import type { FastifyRequest } from "fastify"
 import { errors, jwtVerify, SignJWT } from "jose"
 
@@ -11,7 +11,7 @@ export type AuthIdentity = {
   operatorId: string
   operatorName: string
   merchantId: string
-  role: OperatorAppRole
+  role: Role
   deviceId: string
   sessionId: string
 }
@@ -35,7 +35,7 @@ export async function signAccessToken(identity: AuthIdentity, expiresAt: Date) {
 
 export async function requireAuth(
   request: FastifyRequest,
-  roles: OperatorAppRole[] | undefined,
+  roles: Role[] | undefined,
   pool: DatabasePool,
 ): Promise<AuthIdentity> {
   const header = request.headers.authorization

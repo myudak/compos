@@ -30,9 +30,15 @@ services:
         value: COMPOS-DEMO
       - key: DEMO_MERCHANT_CODE
         value: KEDAI-NUSA
+      - key: OPERATIONAL_DB_POOL_MAX
+        value: "8"
+      - key: ADMIN_DB_POOL_MAX
+        value: "2"
+      - key: REPORTING_DB_POOL_MAX
+        value: "2"
 
   - type: worker
-    name: compos-inventory-worker
+    name: compos-background-worker
     runtime: node
     plan: starter
     region: singapore
@@ -48,6 +54,8 @@ services:
         value: "22"
       - key: LOG_LEVEL
         value: info
+      - key: WORKER_DB_POOL_MAX
+        value: "4"
 
 databases:
   - name: compos-demo-db

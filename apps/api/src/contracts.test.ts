@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { roleSchema } from "@operator/contracts"
+import { createOperatorRequestSchema, roleSchema } from "@operator/contracts"
 
 import { syncEnvelopeSchema, syncTransactionSchema } from "./contracts.js"
 
@@ -62,8 +62,16 @@ describe("sync contracts", () => {
 })
 
 describe("role contract", () => {
-  it("accepts only the two supported merchant roles", () => {
-    expect(roleSchema.options).toEqual(["OPERATOR", "ADMIN"])
+  it("supports Owner login but keeps Admin provisioning scoped to counter roles", () => {
+    expect(roleSchema.options).toEqual(["OPERATOR", "ADMIN", "OWNER"])
+    expect(
+      createOperatorRequestSchema.safeParse({
+        code: "OWNER2",
+        name: "Owner",
+        role: "OWNER",
+        pin: "7777",
+      }).success,
+    ).toBe(false)
     expect(roleSchema.safeParse("UNSUPPORTED_ROLE").success).toBe(false)
   })
 })

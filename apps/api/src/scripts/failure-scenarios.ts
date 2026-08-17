@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto"
 import { pool } from "../db.js"
 import { processBackendOutbox } from "../modules/inventory/processor.js"
 import { verifyAdministration } from "./administration-scenarios.js"
+import { verifyOwnerIntelligence } from "./owner-scenarios.js"
 
 const baseUrl = process.env.API_URL ?? "http://localhost:3001"
 const deviceA = `DVC-FAILURE-A-${randomUUID()}`
@@ -137,6 +138,14 @@ async function cleanupFixtures() {
       [ids],
     )
     await client.query(
+      "DELETE FROM reporting_applied_transactions WHERE merchant_id = 'MRC-KEDAI-NUSA' AND transaction_id = ANY($1::text[])",
+      [ids],
+    )
+    await client.query(
+      "DELETE FROM merchant_product_daily_sales WHERE merchant_id = 'MRC-KEDAI-NUSA' AND product_id = $1",
+      [testProductId],
+    )
+    await client.query(
       "DELETE FROM transaction_events WHERE merchant_id = 'MRC-KEDAI-NUSA' AND transaction_id = ANY($1::text[])",
       [ids],
     )
@@ -232,6 +241,8 @@ async function run() {
     if (burstResults.some((result) => result.status !== "ACCEPTED"))
       throw new Error("bounded reconnect burst was not fully accepted")
 
+    await verifyOwnerIntelligence({ pool, deviceId: deviceA, login, request })
+
     // Device revocation is enforced server-side even if an old access token still exists.
     const admin = await login(deviceA, "ADMIN", "9999")
     const administration = await verifyAdministration({
@@ -312,6 +323,9 @@ async function run() {
           revokedDevice: "session invalidated with HTTP 401",
           operatorAdministration: "create, reset PIN, deactivate, final-admin policy",
           catalogAdministration: "create, price update, archive, restore, merchant isolation",
+          ownerReporting: "projection converged with canonical ledger",
+          ownerInsight: "queued to completed with labelled local analytics",
+          ownerAccessBoundary: "operational API rejected with HTTP 403",
         },
         null,
         2,

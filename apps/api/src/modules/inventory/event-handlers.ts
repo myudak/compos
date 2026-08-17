@@ -6,7 +6,7 @@ import type { BackendOutboxEvent } from "./outbox-repository.js"
 
 export async function handleBackendEvent(client: DatabaseClient, event: BackendOutboxEvent) {
   switch (event.eventType) {
-    case "TRANSACTION_SETTLED":
+    case "INVENTORY_TRANSACTION_SETTLED":
       await applyTransactionToInventory(client, event)
       return
     case "TRANSACTION_CORRECTED":

@@ -5,8 +5,20 @@ type MetricName =
   | "transactions_rejected_total"
   | "corrections_created_total"
   | "inventory_discrepancy_total"
+  | "reporting_projection_total"
+  | "insight_jobs_completed_total"
+  | "insight_jobs_failed_total"
+  | "insight_provider_fallback_total"
+  | "insight_external_requests_total"
 
-type ObservationName = "sync_batch_size" | "sync_latency_ms" | "database_transaction_latency_ms"
+type ObservationName =
+  | "sync_batch_size"
+  | "sync_latency_ms"
+  | "database_transaction_latency_ms"
+  | "operational_route_latency_ms"
+  | "admin_route_latency_ms"
+  | "reporting_route_latency_ms"
+  | "insight_provider_latency_ms"
 
 type Observation = { count: number; sum: number; max: number }
 
