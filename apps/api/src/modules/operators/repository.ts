@@ -8,7 +8,7 @@ type OperatorRow = {
   id: string
   code: string
   name: string
-  role: OperatorAppRole | "OWNER"
+  role: OperatorAppRole
   active: boolean
   created_at: Date
   updated_at: Date
@@ -21,7 +21,7 @@ export class OperatorRepository {
     const result = await this.pool.query<OperatorRow>(
       `SELECT id, code, name, role, active, created_at, updated_at
        FROM operators
-       WHERE merchant_id = $1 AND role <> 'OWNER'
+       WHERE merchant_id = $1
        ORDER BY active DESC, role, name`,
       [merchantId],
     )
@@ -134,7 +134,6 @@ export class OperatorRepository {
 }
 
 function mapOperator(row: OperatorRow): AdminOperator {
-  if (row.role === "OWNER") throw new Error("OWNER cannot be mapped into Operator app contract")
   return {
     id: row.id,
     code: row.code,

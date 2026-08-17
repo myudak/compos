@@ -121,7 +121,7 @@ test("5. one malformed item does not reject its valid batch sibling", async ({ r
   await request.post(`${apiUrl}/v1/devices/register`, {
     data: {
       merchantCode: "KEDAI-NUSA",
-      activationCode: "COMP18-DEMO",
+      activationCode: "COMPOS-DEMO",
       deviceId,
       deviceName: "E2E partial",
     },

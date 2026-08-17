@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { roleSchema } from "@operator/contracts"
 
 import { syncEnvelopeSchema, syncTransactionSchema } from "./contracts.js"
 
@@ -57,5 +58,12 @@ describe("sync contracts", () => {
       transactions: Array.from({ length: 26 }, () => validTransaction),
     })
     expect(result.success).toBe(false)
+  })
+})
+
+describe("role contract", () => {
+  it("accepts only the two supported merchant roles", () => {
+    expect(roleSchema.options).toEqual(["OPERATOR", "ADMIN"])
+    expect(roleSchema.safeParse("UNSUPPORTED_ROLE").success).toBe(false)
   })
 })

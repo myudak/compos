@@ -21,7 +21,7 @@ export class AuthService {
 
   async login(input: LoginRequest) {
     const record = await this.repository.findLoginRecord(input)
-    if (!record || record.role === "OWNER" || !(await bcrypt.compare(input.pin, record.pinHash))) {
+    if (!record || !(await bcrypt.compare(input.pin, record.pinHash))) {
       throw new HttpError(
         401,
         "INVALID_CREDENTIALS",

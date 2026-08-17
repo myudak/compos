@@ -15,7 +15,7 @@ const configSchema = z.object({
     .default(
       "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173,https://compos.myudak.com",
     ),
-  DEVICE_ACTIVATION_CODE: z.string().default("COMP18-DEMO"),
+  DEVICE_ACTIVATION_CODE: z.string().default("COMPOS-DEMO"),
   DEMO_MERCHANT_CODE: z.string().default("KEDAI-NUSA"),
   SERVE_WEB: z
     .enum(["true", "false"])

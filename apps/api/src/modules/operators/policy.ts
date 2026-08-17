@@ -4,7 +4,7 @@ import { HttpError } from "../../http/errors.js"
 
 export type OperatorPolicyTarget = {
   id: string
-  role: OperatorAppRole | "OWNER"
+  role: OperatorAppRole
   active: boolean
 }
 
@@ -15,9 +15,6 @@ export function assertOperatorUpdateAllowed(input: {
   nextActive: boolean
   activeAdminCount: number
 }) {
-  if (input.target.role === "OWNER") {
-    throw new HttpError(403, "FORBIDDEN", "OWNER accounts are managed by the future Owner app")
-  }
   const removesAdmin =
     input.target.active &&
     input.target.role === "ADMIN" &&

@@ -46,7 +46,7 @@ export async function requireAuth(
     const { payload } = await jwtVerify(header.slice(7), secret)
     if (!payload.jti) throw new Error("Session identifier is missing")
     const identity = await new AuthRepository(pool).validateSession(payload.jti)
-    if (!identity || identity.role === "OWNER") {
+    if (!identity) {
       throw new HttpError(401, "SESSION_REVOKED", "Session is no longer active")
     }
     if (roles && !roles.includes(identity.role)) {

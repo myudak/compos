@@ -43,7 +43,7 @@ function LoginForm({
   const [merchantCode, setMerchantCode] = useState("KEDAI-NUSA")
   const [operatorCode, setOperatorCode] = useState("RANI")
   const [pin, setPin] = useState("1234")
-  const [activationCode, setActivationCode] = useState("COMP18-DEMO")
+  const [activationCode, setActivationCode] = useState("COMPOS-DEMO")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -129,7 +129,7 @@ function LoginForm({
         </Button>
         <DeviceIdentityCard deviceId={device.id} />
         <p className="mt-6 text-center text-[10px] leading-5 text-muted-foreground">
-          Demo: KEDAI-NUSA · RANI · PIN 1234 · COMP18-DEMO
+          Demo: KEDAI-NUSA · RANI · PIN 1234 · COMPOS-DEMO
         </p>
       </form>
     </section>

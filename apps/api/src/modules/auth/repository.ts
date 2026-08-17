@@ -6,7 +6,7 @@ export type LoginRecord = {
   operatorId: string
   operatorName: string
   merchantId: string
-  role: OperatorAppRole | "OWNER"
+  role: OperatorAppRole
   pinHash: string
 }
 
@@ -22,7 +22,7 @@ export class AuthRepository {
       operator_id: string
       operator_name: string
       merchant_id: string
-      role: OperatorAppRole | "OWNER"
+      role: OperatorAppRole
       pin_hash: string
     }>(
       `SELECT o.id AS operator_id, o.name AS operator_name, o.merchant_id,
@@ -74,7 +74,7 @@ export class AuthRepository {
       operator_id: string
       operator_name: string
       merchant_id: string
-      role: OperatorAppRole | "OWNER"
+      role: OperatorAppRole
       device_id: string
     }>(
       `SELECT s.operator_id, o.name AS operator_name, s.merchant_id,

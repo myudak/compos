@@ -1,7 +1,7 @@
 import { z } from "zod"
 
-export const roleSchema = z.enum(["OPERATOR", "ADMIN", "OWNER"])
-export const operatorAppRoleSchema = z.enum(["OPERATOR", "ADMIN"])
+export const roleSchema = z.enum(["OPERATOR", "ADMIN"])
+export const operatorAppRoleSchema = roleSchema
 export const paymentMethodSchema = z.enum(["CASH", "STATIC_QRIS", "TRANSFER"])
 export const paymentVerificationTypeSchema = z.enum(["SYSTEM_VERIFIABLE", "OPERATOR_ASSERTED"])
 export const transactionStatusSchema = z.enum(["PENDING", "CONFIRMED", "VOIDED"])

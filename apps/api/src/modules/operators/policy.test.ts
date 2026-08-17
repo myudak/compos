@@ -41,16 +41,4 @@ describe("operator administration policy", () => {
       }),
     ).not.toThrow()
   })
-
-  it("never exposes OWNER administration through the Operator app", () => {
-    expect(() =>
-      assertOperatorUpdateAllowed({
-        actorId: "admin-1",
-        target: { id: "owner-1", role: "OWNER", active: true },
-        nextRole: "ADMIN",
-        nextActive: true,
-        activeAdminCount: 2,
-      }),
-    ).toThrowError(expect.objectContaining<HttpError>({ code: "FORBIDDEN" }))
-  })
 })

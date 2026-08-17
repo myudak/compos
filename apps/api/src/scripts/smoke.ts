@@ -19,7 +19,7 @@ await jsonRequest("/v1/devices/register", {
   method: "POST",
   body: JSON.stringify({
     merchantCode: "KEDAI-NUSA",
-    activationCode: "COMP18-DEMO",
+    activationCode: "COMPOS-DEMO",
     deviceId,
     deviceName: "Smoke Test Device",
   }),

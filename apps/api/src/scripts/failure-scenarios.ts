@@ -34,7 +34,7 @@ async function register(deviceId: string, merchantCode = "KEDAI-NUSA") {
     method: "POST",
     body: JSON.stringify({
       merchantCode,
-      activationCode: "COMP18-DEMO",
+      activationCode: "COMPOS-DEMO",
       deviceId,
       deviceName: `Failure ${deviceId.slice(-6)}`,
     }),
@@ -173,6 +173,7 @@ async function cleanupFixtures() {
 }
 
 async function run() {
+  await assertDatabaseRoleConstraint()
   await pool.query(
     `INSERT INTO products (id, merchant_id, sku, name, description, category, price, stock_projection, min_stock, accent)
      VALUES ($1, 'MRC-KEDAI-NUSA', $2, 'Failure Scenario Coffee', 'Temporary integration fixture', 'Kopi', 22000, 2, 0, '#06b6d4')`,
@@ -318,6 +319,24 @@ async function run() {
     )
   } finally {
     await cleanupFixtures()
+  }
+}
+
+async function assertDatabaseRoleConstraint() {
+  const client = await pool.connect()
+  await client.query("BEGIN")
+  try {
+    await client.query(
+      `INSERT INTO operators (id, merchant_id, code, name, role, pin_hash)
+       VALUES ($1, 'MRC-KEDAI-NUSA', $2, 'Unsupported Role', 'UNSUPPORTED_ROLE', 'unused')`,
+      [randomUUID(), `INVALID-${randomUUID().slice(0, 8)}`],
+    )
+    throw new Error("database accepted an unsupported operator role")
+  } catch (error) {
+    if ((error as { code?: string }).code !== "23514") throw error
+  } finally {
+    await client.query("ROLLBACK")
+    client.release()
   }
 }
 

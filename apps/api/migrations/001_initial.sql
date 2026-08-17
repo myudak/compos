@@ -11,7 +11,7 @@ CREATE TABLE operators (
   merchant_id text NOT NULL REFERENCES merchants(id),
   code text NOT NULL,
   name text NOT NULL,
-  role text NOT NULL CHECK (role IN ('OPERATOR', 'ADMIN', 'OWNER')),
+  role text NOT NULL CHECK (role IN ('OPERATOR', 'ADMIN')),
   pin_hash text NOT NULL,
   active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),

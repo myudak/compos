@@ -27,7 +27,7 @@ services:
       - key: VITE_DEMO_MODE
         value: "false"
       - key: DEVICE_ACTIVATION_CODE
-        value: COMP18-DEMO
+        value: COMPOS-DEMO
       - key: DEMO_MERCHANT_CODE
         value: KEDAI-NUSA
 

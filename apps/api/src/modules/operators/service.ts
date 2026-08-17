@@ -55,7 +55,6 @@ export class OperatorService {
     return withTransaction(this.pool, async (client) => {
       const target = await this.repository.lock(client, identity.merchantId, operatorId)
       if (!target) throw new HttpError(404, "NOT_FOUND", "Operator not found")
-      if (target.role === "OWNER") throw new HttpError(403, "FORBIDDEN", "OWNER is reserved")
       const next = {
         name: input.name ?? target.name,
         role: input.role ?? target.role,
@@ -92,7 +91,7 @@ export class OperatorService {
     const pinHash = await bcrypt.hash(input.pin, 10)
     await withTransaction(this.pool, async (client) => {
       const target = await this.repository.lock(client, identity.merchantId, operatorId)
-      if (!target || target.role === "OWNER") {
+      if (!target) {
         throw new HttpError(404, "NOT_FOUND", "Operator not found")
       }
       await this.repository.updatePin(client, identity.merchantId, operatorId, pinHash)
