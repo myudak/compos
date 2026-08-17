@@ -9,7 +9,7 @@ pnpm db:reset
 pnpm dev
 ```
 
-Buka `http://localhost:5173` di clean browser profile. Kasir: `KEDAI-NUSA / RANI / 1234`; Admin: `KEDAI-NUSA / ADMIN / 9999`; activation code: `COMP18-DEMO`.
+Buka `http://localhost:5173` di clean browser profile. Kasir: `KEDAI-NUSA / RANI / 1234`; Admin: `KEDAI-NUSA / ADMIN / 9999`; activation code: `COMPOS-DEMO`.
 
 ## Alur presentasi 8–10 menit
 

@@ -14,8 +14,8 @@ https://github.com/user-attachments/assets/8e7f4339-7f47-4fe9-8533-17880da089f4
   <p><strong>Kasir tetap jalan. Sinkron saat online.</strong></p>
 
   <p>
-    COMPOS adalah <strong>COMPFEST Point of Sale</strong> yang dirancang offline-first untuk<br />
-    case study COMPFEST 18 <em>Sync Without Signal</em>.
+    COMPOS adalah point-of-sale offline-first untuk merchant yang harus tetap berjualan<br />
+    saat koneksi tidak stabil, lalu sinkron otomatis ketika internet kembali.
   </p>
 
   <p>
@@ -52,7 +52,7 @@ koneksi kembali.
 
 Project ini bukan mockup checkout. Repository-nya mencakup durable browser persistence, sync engine,
 merchant-scoped Admin, immutable transaction ledger, reconciliation, PostgreSQL outbox worker,
-automated failure scenarios, dan playbook engineering yang memetakan case study ke bukti.
+automated failure scenarios, dan playbook engineering yang memetakan product requirement ke bukti.
 
 ## Core guarantees
 
@@ -151,7 +151,7 @@ dan inventory worker.
 | Kasir | `KEDAI-NUSA` | `RANI`   | `1234` |
 | Admin | `KEDAI-NUSA` | `ADMIN`  | `9999` |
 
-Device activation code: `COMP18-DEMO`.
+Device activation code: `COMPOS-DEMO`.
 
 > [!WARNING]
 > `pnpm db:reset` menghapus schema PostgreSQL lokal. Guard bawaan hanya mengizinkan database bernama
@@ -168,7 +168,7 @@ dan satu PostgreSQL database di region Singapore. Migration berjalan concurrency
 worker start; deterministic demo seed hanya berjalan pada first deploy.
 
 > [!CAUTION]
-> Ini adalah **isolated evaluation sandbox**, bukan production template. Inventory worker memakai
+> Ini adalah **isolated demo sandbox**, bukan production template. Inventory worker memakai
 > paid `starter` instance. Free Render PostgreSQL kedaluwarsa setelah 30 hari dan tidak menyediakan
 > backup. Demo credentials di atas bersifat publik. Review estimasi biaya sebelum approve, lalu hapus
 > seluruh Render project setelah selesai mencoba.
@@ -197,7 +197,7 @@ merchant sungguhan.
 ## Documentation
 
 - [Project Playbook](docs/README.md) — pintu masuk seluruh product dan engineering knowledge.
-- [Case Study](docs/case_study.md) — problem, scope, dan interpretasi requirement.
+- [Product Principles](docs/product_principles.md) — problem, scope, invariants, dan success criteria.
 - [Traceability Matrix](docs/traceability_matrix.md) — requirement ke code, API, test, dan demo step.
 - [System Architecture](docs/system_architecture.md) — components, trust boundary, dan data flow.
 - [Database Design](docs/database_design.md) — canonical ledger, sessions, audit, dan outbox schema.

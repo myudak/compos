@@ -55,7 +55,7 @@ flowchart TD
 5. Worker memproses inventory event secara idempotent.
 6. Kalau stock menjadi negatif, sistem membuka discrepancy untuk ditinjau Admin.
 
-Inventory sengaja eventual. Memaksa cross-device reservation ketika offline akan mengorbankan availability yang justru menjadi inti case study.
+Inventory sengaja eventual. Memaksa cross-device reservation ketika offline akan mengorbankan checkout availability yang menjadi jaminan utama produk.
 
 ## Boundary yang sengaja tidak dibuat
 

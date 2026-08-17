@@ -1,6 +1,6 @@
 # Traceability Matrix
 
-Matrix ini menghubungkan case-study requirement ke implementation boundary, API, automated evidence, dan langkah demo. Tujuannya biar klaim produk gampang diverifikasi, bukan cuma terdengar meyakinkan.
+Matrix ini menghubungkan product requirement ke implementation boundary, API, automated evidence, dan langkah demo. Tujuannya biar klaim produk gampang diverifikasi, bukan cuma terdengar meyakinkan.
 
 | Req                      | Implementation / API                                                    | Automated evidence                                 | Demo evidence                                        |
 | ------------------------ | ----------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------- |

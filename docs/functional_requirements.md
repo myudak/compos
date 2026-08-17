@@ -25,7 +25,7 @@
 
 - PIN harus numerik, panjang 4–8 digit.
 - Admin tidak boleh demote/deactivate dirinya sendiri atau menghapus final active Admin.
-- `OWNER` tidak bisa dibuat atau masuk ke COMPOS Operator.
+- Role yang didukung hanya `OPERATOR` dan `ADMIN`; semua permission tetap divalidasi server-side.
 - Logout membersihkan active cart dan session setelah konfirmasi, tetapi device identity, catalog, confirmed sales, dan outbox tetap aman.
 - Catalog administration online-only. Perubahan stock hanya lewat reconciliation.
 - Harga/catalog offline boleh stale; item and price snapshot pada transaksi menjadi historical truth.

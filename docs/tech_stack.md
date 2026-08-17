@@ -15,7 +15,7 @@
 
 ## Kenapa PWA, bukan React Native?
 
-Case study butuh desktop/tablet/mobile dan offline browser storage, bukan native hardware integration. Satu responsive PWA lebih cepat dibangun, dipasang, di-update, dan didemokan. React Native baru masuk akal kalau kebutuhan berubah ke printer/Bluetooth/NFC/background sync yang memang tidak cukup reliable di browser.
+COMPOS harus tersedia di desktop/tablet/mobile dan memakai offline browser storage tanpa bergantung pada native hardware integration. Satu responsive PWA lebih cepat dibangun, dipasang, di-update, dan dioperasikan. React Native baru masuk akal kalau kebutuhan berubah ke printer/Bluetooth/NFC/background sync yang memang tidak cukup reliable di browser.
 
 ## Kenapa belum RabbitMQ?
 

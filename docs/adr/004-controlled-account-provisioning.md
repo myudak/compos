@@ -8,7 +8,7 @@ Public signup tidak cocok untuk akun kasir yang harus berada di merchant dan rol
 
 ## Keputusan
 
-Hanya merchant Admin yang boleh membuat `OPERATOR` atau `ADMIN`, mengubah role/name, reset PIN, dan activate/deactivate account. `OWNER` tidak bisa dibuat dari COMPOS Operator.
+Hanya merchant Admin yang boleh membuat `OPERATOR` atau `ADMIN`, mengubah role/name, reset PIN, dan activate/deactivate account. Tidak ada public self-signup.
 
 ## Konsekuensi
 

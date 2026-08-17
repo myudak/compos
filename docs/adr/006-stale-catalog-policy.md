@@ -4,7 +4,7 @@
 
 ## Konteks
 
-Device offline tidak bisa tahu perubahan harga/archive terbaru. Memblokir checkout akan menabrak tujuan utama case study.
+Device offline tidak bisa tahu perubahan harga/archive terbaru. Memblokir checkout akan menabrak jaminan availability utama produk.
 
 ## Keputusan
 

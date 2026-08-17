@@ -4,12 +4,12 @@ Dokumen ini berlaku untuk seluruh repository. Baca sebelum mengubah code, test, 
 
 ## 1. Kenali produknya dulu
 
-COMPOS (**COMPFEST Point of Sale**) adalah offline-first POS untuk case study COMPFEST 18 **Sync Without Signal**. Kasir harus tetap bisa menyelesaikan transaksi ketika internet putus. Sale disimpan secara durable di device, masuk local outbox, lalu di-settle ke backend secara idempotent ketika koneksi kembali.
+COMPOS adalah offline-first POS untuk merchant yang harus tetap melayani checkout ketika internet putus. Sale disimpan secara durable di device, masuk local outbox, lalu di-settle ke backend secara idempotent ketika koneksi kembali.
 
 Mulai dari dokumen ini:
 
 1. [Project overview](docs/project_overview.md)
-2. [Case study](docs/case_study.md)
+2. [Product principles](docs/product_principles.md)
 3. [System architecture](docs/system_architecture.md)
 4. [Sync protocol](docs/sync_protocol.md)
 5. [Development guide](docs/development_guide.md)
@@ -120,7 +120,7 @@ Gunakan command paling kecil yang relevan selama iterasi, lalu verifikasi seband
 - Local offline checkout lease berlaku maksimal 72 jam dari successful online authentication.
 - Setelah lease habis, existing data tetap readable/queued tetapi checkout baru diblokir.
 - Admin tidak boleh deactivate/demote dirinya sendiri atau menghapus final active Admin.
-- `OWNER` reserved untuk future Owner app dan tidak boleh masuk COMPOS Operator.
+- Role aplikasi hanya `OPERATOR` dan `ADMIN` dengan permission server-side.
 
 ## 5. Code boundaries
 
@@ -185,7 +185,7 @@ Jangan menyatakan “production-ready” hanya karena build hijau. Production me
 - Reset script harus tetap menolak nama database selain `operator_pos` atau `operator_pos_*`.
 - Jangan menjalankan reset pada production atau database yang targetnya tidak terverifikasi.
 - Setelah live customer data ada, gunakan additive, reviewed, reversible migrations. Clean baseline policy tidak lagi berlaku.
-- Seed credentials dan `COMP18-DEMO` hanya untuk demo/local environment.
+- Seed credentials dan `COMPOS-DEMO` hanya untuk demo/local environment.
 
 ## 9. Git dan local tooling
 

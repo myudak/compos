@@ -8,7 +8,7 @@ COMPOS harus cepat tersedia di desktop, tablet, dan mobile, mampu menyimpan data
 
 ## Keputusan
 
-Bangun COMPOS Operator sebagai installable React PWA. Jangan membuat React Native app paralel pada fase case study.
+Bangun COMPOS Operator sebagai installable React PWA. Jangan membuat React Native app paralel sebelum ada kebutuhan native yang terukur.
 
 ## Kenapa begini?
 

@@ -1,6 +1,6 @@
 # Gambaran Proyek
 
-COMPOS (**COMPFEST Point of Sale**) adalah aplikasi kasir offline-first untuk case study COMPFEST 18 **Sync Without Signal**. Targetnya counter UMKM Indonesia yang koneksinya kadang stabil, kadang ngilang, sementara beberapa device bisa tetap berjualan bersamaan. Prinsip utamanya simpel: transaksi yang sudah dikonfirmasi di device tidak boleh ikut hilang cuma karena internet putus.
+COMPOS adalah aplikasi kasir offline-first untuk merchant dengan counter yang koneksinya kadang stabil, kadang ngilang, sementara beberapa device bisa tetap berjualan bersamaan. Prinsip utamanya simpel: transaksi yang sudah dikonfirmasi di device tidak boleh ikut hilang cuma karena internet putus.
 
 ## Outcome produk
 
@@ -17,7 +17,7 @@ Kasir bisa login, memuat katalog merchant, checkout dengan Cash, Static QRIS, at
 
 ## Batas aplikasi
 
-Repo ini mengimplementasikan COMPOS Operator sebagai installable React PWA beserta API dan worker-nya. Aplikasi Entry dan Owner yang disebut di case study berada di luar scope. Role `OWNER` tetap dicadangkan di backend, tetapi tidak boleh masuk ke COMPOS Operator.
+Repo ini mengimplementasikan COMPOS Operator sebagai installable React PWA beserta API dan worker-nya. Merchant memakai role `OPERATOR` untuk checkout dan `ADMIN` untuk pengelolaan serta exception workflow.
 
 ## Struktur repo
 
@@ -34,7 +34,7 @@ Sengaja cuma ada satu shared runtime package. PostgreSQL tetap dimiliki API, sed
 
 ## Di luar scope
 
-- Native React Native app dan aplikasi Owner/Entry terpisah.
+- Native React Native app atau aplikasi role terpisah.
 - Central inventory reservation atau strong consistency lintas device saat offline.
 - Public self-signup, payment-gateway verification untuk Static QRIS/Transfer, dan broker seperti RabbitMQ.
 - Production multi-region deployment; dokumen deployment menjelaskan jalur menuju sana, bukan mengklaim prototype sudah live-grade.

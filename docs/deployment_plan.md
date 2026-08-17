@@ -48,7 +48,7 @@ Clean baseline adalah prototype policy. Sebelum ada live customer data, pindah k
 
 GitHub Actions hanya menjalankan repository quality gate dan tidak memanggil Render CLI, membuat
 service, atau menyentuh akun Render. `render.yaml` tetap menjadi deployment recipe yang harus direview
-di halaman Blueprint sebelum evaluator memilih untuk membuat sandbox-nya sendiri.
+di halaman Blueprint sebelum pengguna memilih untuk membuat sandbox-nya sendiri.
 
 ## Security, capacity, dan recovery
 

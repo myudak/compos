@@ -19,7 +19,7 @@ pnpm dev
 | --------------------------- | -------------------------------------------------------------------------------------------- |
 | `DATABASE_URL`              | `postgres://operator:operator@localhost:5432/operator_pos`                                   |
 | `JWT_SECRET`                | Local-only default; wajib secret nyata saat deploy.                                          |
-| `DEVICE_ACTIVATION_CODE`    | `COMP18-DEMO`; ganti secara aman di luar demo.                                               |
+| `DEVICE_ACTIVATION_CODE`    | `COMPOS-DEMO`; ganti secara aman di luar demo.                                               |
 | `CORS_ORIGIN`               | Daftar web origin yang diizinkan, dipisahkan koma.                                           |
 | `PORT`, `HOST`, `LOG_LEVEL` | API runtime configuration.                                                                   |
 | `VITE_API_URL`              | Browser API base; local dev default `http://localhost:3001`, production default same-origin. |

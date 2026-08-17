@@ -1,25 +1,26 @@
 # Role dan Permission
 
-| Capability                                       | Kasir / `OPERATOR` | Merchant `ADMIN` | `OWNER` |
-| ------------------------------------------------ | :----------------: | :--------------: | :-----: |
-| Login ke COMPOS Operator                         |         Ya         |        Ya        |  Tidak  |
-| Offline checkout dan provisional receipt         |         Ya         |        Ya        |  Tidak  |
-| Lihat local catalog, transaction, dan sync queue |         Ya         |        Ya        |  Tidak  |
-| Void provisional transaction                     |         Ya         |        Ya        |  Tidak  |
-| Mengubah settled transaction                     |       Tidak        |      Tidak       |  Tidak  |
-| Membuat payment correction                       |       Tidak        |        Ya        |  Tidak  |
-| Resolve inventory discrepancy                    |       Tidak        |        Ya        |  Tidak  |
-| Membuat/deactivate/reset Operator atau Admin     |       Tidak        |        Ya        |  Tidak  |
-| Revoke device merchant                           |       Tidak        |        Ya        |  Tidak  |
-| Membuat/edit/archive catalog dan harga           |       Tidak        |        Ya        |  Tidak  |
-| Edit stock langsung dari catalog                 |       Tidak        |      Tidak       |  Tidak  |
-| Mengakses merchant lain                          |       Tidak        |      Tidak       |  Tidak  |
+| Capability                                       | Kasir / `OPERATOR` | Merchant `ADMIN` |
+| ------------------------------------------------ | :----------------: | :--------------: |
+| Login ke COMPOS Operator                         |         Ya         |        Ya        |
+| Offline checkout dan provisional receipt         |         Ya         |        Ya        |
+| Lihat local catalog, transaction, dan sync queue |         Ya         |        Ya        |
+| Void provisional transaction                     |         Ya         |        Ya        |
+| Mengubah settled transaction                     |       Tidak        |      Tidak       |
+| Membuat payment correction                       |       Tidak        |        Ya        |
+| Resolve inventory discrepancy                    |       Tidak        |        Ya        |
+| Membuat/deactivate/reset Operator atau Admin     |       Tidak        |        Ya        |
+| Revoke device merchant                           |       Tidak        |        Ya        |
+| Membuat/edit/archive catalog dan harga           |       Tidak        |        Ya        |
+| Edit stock langsung dari catalog                 |       Tidak        |      Tidak       |
+| Mengakses merchant lain                          |       Tidak        |      Tidak       |
 
 ## Account provisioning
 
 Tidak ada public signup. Merchant Admin membuat akun `OPERATOR` atau `ADMIN`. Final active Admin tidak boleh dinonaktifkan, dan seorang Admin tidak boleh demote/deactivate dirinya sendiri. Reset PIN, account deactivation, role change, dan device revocation menginvalidasi server sessions yang terdampak.
 
-`OWNER` dicadangkan untuk future Owner app. Mempertahankan role ini di vocabulary backend mencegah accidental reuse, sementara contract COMPOS Operator secara eksplisit menolaknya.
+COMPOS hanya mengenal role `OPERATOR` dan `ADMIN`. Menambah role baru membutuhkan contract,
+permission matrix, tenant boundary, migration, dan test yang eksplisit.
 
 ## Offline authorization timeline
 

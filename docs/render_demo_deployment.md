@@ -1,7 +1,7 @@
 # Render Demo Deployment
 
-Jalur ini dibuat untuk evaluator yang ingin mencoba COMPOS tanpa menyiapkan Node.js, pnpm, dan
-PostgreSQL sendiri. Hasilnya adalah sandbox terisolasi di akun Render milik evaluator—bukan shared
+Jalur ini dibuat untuk siapa pun yang ingin mencoba COMPOS tanpa menyiapkan Node.js, pnpm, dan
+PostgreSQL sendiri. Hasilnya adalah sandbox terisolasi di akun Render masing-masing—bukan shared
 production environment.
 
 ## Resource yang dibuat
@@ -26,7 +26,7 @@ disamarkan sebagai request-side effect.
 1. Klik tombol berikut dan login ke Render.
 2. Review tiga resource, region Singapore, dan estimasi biaya worker.
 3. Approve Blueprint. `JWT_SECRET` dibuat random oleh Render; demo activation code tetap
-   `COMP18-DEMO`.
+   `COMPOS-DEMO`.
 4. Tunggu web service healthy dan initial deploy hook selesai melakukan deterministic seed.
 5. Buka URL `compos-demo` yang diberikan Render.
 
@@ -44,9 +44,9 @@ diam-diam mengubah sandbox yang sudah dibuat.
 | Kasir | `KEDAI-NUSA` | `RANI`   | `1234` |
 | Admin | `KEDAI-NUSA` | `ADMIN`  | `9999` |
 
-Device activation code: `COMP18-DEMO`.
+Device activation code: `COMPOS-DEMO`.
 
-Credential ini sengaja publik untuk isolated evaluation. Jangan reuse credential atau seed tersebut
+Credential ini sengaja publik untuk isolated demo. Jangan reuse credential atau seed tersebut
 di environment yang memegang data merchant nyata.
 
 ## Smoke test
