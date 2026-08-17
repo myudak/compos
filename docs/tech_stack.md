@@ -3,13 +3,14 @@
 | Area            | Pilihan                                            | Kenapa dipakai                                                             |
 | --------------- | -------------------------------------------------- | -------------------------------------------------------------------------- |
 | Web             | React 19, Vite, TypeScript                         | Cepat untuk PWA, ecosystem matang, strict typing.                          |
+| Owner web       | Separate React/Vite PWA                            | Reporting lifecycle terpisah dari offline checkout runtime.                |
 | UI              | shadcn/ui, Tailwind CSS, Tabler Icons              | Accessible primitives, mudah di-theme, tidak mengunci ke component vendor. |
 | Local data      | Dexie + IndexedDB                                  | Transactional durable storage yang native di browser.                      |
 | UI state        | Zustand                                            | Ringan untuk ephemeral interaction state; bukan durable storage.           |
 | Contracts       | Zod + inferred TypeScript                          | Runtime validation dan compile-time DTO dari satu sumber.                  |
 | API             | Fastify                                            | Typed-friendly, ringan, lifecycle/plugin jelas.                            |
 | Database        | PostgreSQL + `pg` typed repositories               | Constraint dan transaction kuat tanpa menambah ORM abstraction saat ini.   |
-| Background work | PostgreSQL outbox worker                           | Reliable handoff dengan dependency minimum.                                |
+| Background work | PostgreSQL outbox, tiga independent worker lanes   | Reliable handoff tanpa broker; provider wait tidak memblokir projection.   |
 | Test            | Vitest, fake-indexeddb, Fastify inject, Playwright | Mencakup pure policy sampai browser failure scenario.                      |
 | Tooling         | pnpm workspaces, Oxlint, Oxfmt, GitHub Actions     | Native-speed quality gate dengan type-aware linting.                       |
 

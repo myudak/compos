@@ -21,14 +21,18 @@ Buka `http://localhost:5173` di clean browser profile. Kasir: `KEDAI-NUSA / RANI
 6. **Lost response (45 detik):** tunjukkan test/evidence bahwa commit pertama sukses, response hilang, retry menghasilkan `ALREADY_PROCESSED`.
 7. **Admin (90 detik):** masuk sebagai Admin; buat/deactivate cashier, edit harga, lalu soft-archive product.
 8. **Exception flow (60 detik):** tampilkan payment correction dan inventory discrepancy; original transaction tetap immutable.
-9. **Evidence (45 detik):** tunjukkan `pnpm run ci`, traceability matrix, test, dan CI artifacts.
-10. **Trade-off (45 detik):** PWA vs React Native, PostgreSQL outbox vs RabbitMQ, stale catalog, dan eventual inventory.
+9. **Owner (60 detik):** buka `5174/owner/` dengan OWNER/7777, tunjukkan freshness, top product,
+   generate insight, dan label `LOCAL_ANALYTICS` saat provider secret kosong.
+10. **Evidence (45 detik):** tunjukkan `pnpm run ci`, mixed-load JSON, traceability, dan CI artifacts.
+11. **Trade-off (45 detik):** access-pattern pools/read model sebelum replica, PostgreSQL outbox
+    sebelum RabbitMQ, serta provider fallback yang tidak mengganggu settlement.
 
 ## Command berguna
 
 ```bash
 pnpm test:integration
 pnpm test:e2e
+pnpm test:load
 curl -H "Accept: text/plain" http://localhost:3001/metrics
 ```
 

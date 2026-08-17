@@ -29,6 +29,7 @@ apps/
     src/shared/             reusable UI dan domain-neutral helpers
     e2e/                    Playwright production-build scenarios
     public/brand/           official COMPOS icon dan banner
+  owner-web/                React 19 + Vite PWA untuk reporting dan insight Owner
   api/                      Fastify API + PostgreSQL worker
     src/modules/            vertical business modules, services, repositories, mappers
     src/routes/             thin HTTP adapters
@@ -54,7 +55,7 @@ pnpm db:reset
 pnpm dev
 ```
 
-`pnpm dev` menjalankan web (`5173`), API (`3001`), dan worker.
+`pnpm dev` menjalankan Operator (`5173`), Owner (`5174`), API (`3001`), dan worker.
 
 Quality commands:
 
@@ -66,6 +67,7 @@ pnpm typecheck
 pnpm test
 pnpm test:integration
 pnpm test:e2e
+pnpm test:load
 pnpm build
 pnpm run ci
 ```
@@ -120,7 +122,18 @@ Gunakan command paling kecil yang relevan selama iterasi, lalu verifikasi seband
 - Local offline checkout lease berlaku maksimal 72 jam dari successful online authentication.
 - Setelah lease habis, existing data tetap readable/queued tetapi checkout baru diblokir.
 - Admin tidak boleh deactivate/demote dirinya sendiri atau menghapus final active Admin.
-- Role aplikasi hanya `OPERATOR` dan `ADMIN` dengan permission server-side.
+- Role produk adalah `OPERATOR`, `ADMIN`, dan `OWNER`; Owner hanya boleh memakai Owner API/PWA.
+- Admin tidak boleh membuat/mengubah Owner; provisioning Owner adalah non-HTTP command.
+
+### Reporting dan insight
+
+- Dashboard membaca read model, bukan scan ledger pada request path.
+- `reporting_applied_transactions` adalah idempotency boundary; replay tidak boleh menggandakan
+  aggregate.
+- Reporting lag harus terlihat di UI. Jangan menyamarkan eventual consistency sebagai real-time.
+- Provider hanya menerima aggregate metrics. PIN, token, operator identity, raw transaction, dan
+  device data tidak boleh keluar.
+- Fallback wajib diberi label `LOCAL_ANALYTICS`, bukan external AI.
 
 ## 5. Code boundaries
 
@@ -149,6 +162,9 @@ Gunakan command paling kecil yang relevan selama iterasi, lalu verifikasi seband
 - Backend batch boleh diproses concurrently dalam bounded batch, tetapi result order harus sama dengan input.
 - Worker entrypoint, processor, dan event handlers tetap terpisah.
 - Event baru wajib punya explicit handler, idempotency rule, retry behavior, dan test.
+- Pool operational, Admin, reporting, dan worker punya budget terpisah; hitung total per replica
+  sebelum menaikkan concurrency.
+- Inventory, reporting, dan insight tetap independent loops walau satu worker deployment.
 
 ## 6. Cara mengerjakan perubahan
 

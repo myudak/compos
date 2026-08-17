@@ -60,3 +60,14 @@ Inventory sengaja eventual. Memaksa cross-device reservation ketika offline akan
 ## Boundary yang sengaja tidak dibuat
 
 Tidak ada generic shared package, ORM layer, RabbitMQ, atau domain framework. Abstraction baru harus menyelesaikan duplication nyata di minimal dua consumer, bukan sekadar terlihat enterprise.
+
+## Owner intelligence dan workload isolation
+
+COMPOS Owner adalah PWA terpisah di port `5174` atau hosted path `/owner/`. Dashboard tidak menjalankan
+aggregate scan ke immutable ledger. Transaction acceptance menerbitkan inventory dan reporting event;
+reporting lane mengisi daily/product read models secara idempotent, lalu reporting pool membacanya.
+
+API memakai operational pool (12/2 detik), Admin pool (4/5 detik), dan reporting pool (4/3 detik).
+Worker punya pool 4 dan independent inventory, reporting, serta insight loops. External provider wait
+tidak menahan dua lane lain. Detail connection math dan scale trigger ada di
+[Scaling Strategy](scaling_strategy.md).

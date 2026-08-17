@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-  PWA["Static PWA hosting + CDN"] --> Browser["COMPOS Operator installation"]
+  PWA["Static PWA hosting + CDN"] --> Browser["COMPOS Operator + Owner installation"]
   Browser --> TLS["TLS load balancer"]
   TLS --> API["Stateless Fastify replicas"]
   API --> PG[("Managed PostgreSQL primary")]
@@ -55,3 +55,8 @@ di halaman Blueprint sebelum pengguna memilih untuk membuat sandbox-nya sendiri.
 Gunakan TLS, secret manager, rotasi JWT/device activation secret, least-privilege DB role, encrypted backup, rate limit/WAF, private metrics endpoint, dan exact CORS origin. Jangan expose seed credentials.
 
 Scale stateless API secara horizontal dan sesuaikan connection pool dengan batas PostgreSQL. Worker bisa ditambah melalui safe event claiming. RabbitMQ atau broker lain baru ditambahkan ketika independent consumer, replay, atau throughput sudah menjadi bottleneck terukur.
+
+Hosted mode menyajikan Operator di `/` dan Owner di `/owner/`; `/v1`, `/health`, serta `/metrics`
+selalu menang dari SPA fallback. Hitung connection cap dengan
+`API replica × (operational + admin + reporting) + worker replica × worker`. Render sandbox memakai
+`8 + 2 + 2 + 4 = 16` potential connections dan local analytics karena tidak membawa provider secret.

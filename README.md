@@ -51,8 +51,8 @@ default tersebut: transaksi diselesaikan secara lokal dulu, lalu cloud mengejar 
 koneksi kembali.
 
 Project ini bukan mockup checkout. Repository-nya mencakup durable browser persistence, sync engine,
-merchant-scoped Admin, immutable transaction ledger, reconciliation, PostgreSQL outbox worker,
-automated failure scenarios, dan playbook engineering yang memetakan product requirement ke bukti.
+merchant-scoped Admin, separate Owner PWA, immutable transaction ledger, reporting read models,
+reconciliation, PostgreSQL outbox worker, dan automated failure scenarios.
 
 ## Core guarantees
 
@@ -82,6 +82,9 @@ flowchart LR
   Ledger --> BackendOutbox["Backend outbox event"]
   BackendOutbox --> Worker["Inventory worker"]
   Worker --> Projection["Stock projection + discrepancy"]
+  Ledger --> ReportEvent["Reporting event"]
+  ReportEvent --> ReadModel["Daily sales read model"]
+  ReadModel --> Owner["COMPOS Owner PWA"]
 ```
 
 Browser scheduler bereaksi pada startup, browser `online` event, manual reconnect, health probe, dan
@@ -109,7 +112,8 @@ Demo utama yang perlu dibuktikan:
 ```text
 apps/
   operator-web/   React 19 + Vite PWA, Dexie, Zustand, shadcn primitives
-  api/            Fastify API, PostgreSQL repositories, outbox inventory worker
+  owner-web/      React 19 + Vite PWA, online-first reporting dan insight history
+  api/            Fastify API, PostgreSQL repositories, multi-lane outbox worker
 packages/
   contracts/      Canonical Zod wire schemas dan inferred TypeScript DTOs
 docs/             Product, architecture, operations, testing, dan ADR playbook
@@ -121,7 +125,7 @@ docs/             Product, architecture, operations, testing, dan ADR playbook
 | API                   | Fastify 5, Zod contracts, JWT dengan server-side session `jti`    |
 | Durable local state   | IndexedDB melalui Dexie                                           |
 | Canonical persistence | PostgreSQL 17, explicit SQL repositories, transactional outbox    |
-| Background processing | Independent Node.js inventory worker                              |
+| Background processing | Satu Node.js worker; lane inventory, reporting, dan insight       |
 | Quality               | Vitest, fake IndexedDB, PostgreSQL integration suite, Playwright  |
 | Tooling               | pnpm workspace, Oxlint, Oxfmt, GitHub Actions                     |
 
@@ -143,13 +147,15 @@ pnpm db:reset
 pnpm dev
 ```
 
-Buka [http://localhost:5173](http://localhost:5173). `pnpm dev` menjalankan PWA, API di port `3001`,
-dan inventory worker.
+Buka Operator di [http://localhost:5173](http://localhost:5173) dan Owner di
+[http://localhost:5174/owner/](http://localhost:5174/owner/). `pnpm dev` menjalankan kedua PWA, API
+di port `3001`, serta worker dengan lane inventory, reporting, dan insight.
 
 | Role  | Merchant     | Operator | PIN    |
 | ----- | ------------ | -------- | ------ |
 | Kasir | `KEDAI-NUSA` | `RANI`   | `1234` |
 | Admin | `KEDAI-NUSA` | `ADMIN`  | `9999` |
+| Owner | `KEDAI-NUSA` | `OWNER`  | `7777` |
 
 Device activation code: `COMPOS-DEMO`.
 
@@ -185,6 +191,8 @@ Panduan first deploy, smoke test, troubleshooting, dan teardown ada di
 | `pnpm typecheck`        | Strict TypeScript untuk contracts, web, dan API                        |
 | `pnpm test`             | Unit + fake IndexedDB integration                                      |
 | `pnpm test:integration` | Real PostgreSQL, auth/admin, idempotency, lost response, worker replay |
+| `pnpm test:load`        | Mixed load 50 merchant: sync, Admin, reporting, insight                |
+| `pnpm test:load:500`    | Capacity profile eksplisit 500 merchant selama lima menit              |
 | `pnpm test:e2e`         | Production-build Playwright scenarios                                  |
 | `pnpm docs:check`       | Seluruh local Markdown link dan image reference                        |
 | `pnpm run ci`           | Seluruh repository quality gates dalam satu command                    |
@@ -200,6 +208,7 @@ merchant sungguhan.
 - [Product Principles](docs/product_principles.md) — problem, scope, invariants, dan success criteria.
 - [Traceability Matrix](docs/traceability_matrix.md) — requirement ke code, API, test, dan demo step.
 - [System Architecture](docs/system_architecture.md) — components, trust boundary, dan data flow.
+- [Scaling Strategy](docs/scaling_strategy.md) — workload budgets, evidence, dan scale triggers.
 - [Database Design](docs/database_design.md) — canonical ledger, sessions, audit, dan outbox schema.
 - [Testing Strategy](docs/testing_strategy.md) — unit, integration, failure injection, dan E2E.
 - [Development Guide](docs/development_guide.md) — setup, environment, dan workspace boundaries.

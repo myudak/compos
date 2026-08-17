@@ -55,3 +55,14 @@ Render one-click demo tidak memenuhi expectation tersebut: free database tidak p
 kedaluwarsa setelah 30 hari. Hapus seluruh Render project setelah evaluasi agar paid worker berhenti.
 Urutan deploy, smoke test, troubleshooting, dan teardown ada di
 [Render Demo Deployment](render_demo_deployment.md).
+
+## Owner/reporting incident
+
+1. Cek `reporting_lane_queue_depth`, `insight_lane_queue_depth`, pool waiting, dan
+   `projectionLagSeconds`.
+2. Kalau settlement sehat tetapi dashboard stale, fokus ke reporting lane; jangan scale operational
+   pool secara refleks.
+3. Provider fallback naik berarti external dependency bermasalah. Local insight tetap valid dan wajib
+   tampil sebagai `LOCAL_ANALYTICS`.
+4. Replay reporting event aman selama `reporting_applied_transactions` utuh. Jangan edit aggregate
+   manual sebelum ledger-to-projection reconciliation dijalankan.

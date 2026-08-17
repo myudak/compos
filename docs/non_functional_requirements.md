@@ -22,3 +22,7 @@ Server down tidak otomatis membuat kasir berhenti, karena critical write dilakuk
 CI memaksa formatting, type-aware lint, strict TypeScript, unit test, isolated PostgreSQL integration, production build, dan Playwright scenarios. Page tidak boleh mengakses Dexie/API infrastructure secara langsung kecuali type-only import. Durable state tidak boleh disimpan di Zustand.
 
 Angka di atas adalah target engineering, bukan hasil benchmark production. Sebelum go-live, ukur ulang memakai device kasir nyata, volume merchant representatif, dan failure injection.
+
+Mixed workload target menambahkan settlement p95 `<750 ms`, Owner dashboard p95 `<1.5 s`, zero
+lost/duplicate settlement, dan reporting convergence ke canonical ledger. Reporting/provider failure
+tidak boleh mengambil operational connection budget atau menaikkan settlement melewati target.

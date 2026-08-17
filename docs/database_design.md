@@ -56,3 +56,14 @@ Tabel utama:
 Accepted transaction tidak di-update. Nama produk, SKU, unit price, quantity, subtotal, payment method, dan totals disimpan sebagai snapshot. Karena itu perubahan harga atau archive setelah sale tidak merusak histori. Correction adalah record baru dengan actor, reason, dan timestamp.
 
 Clean baseline/reset hanya kebijakan prototype. Saat sudah menyimpan customer data, schema change harus memakai additive, reviewed, reversible migrations.
+
+## Reporting dan insight schema
+
+- `reporting_applied_transactions`: transaction identity yang sudah diproyeksikan; replay-safe.
+- `merchant_daily_sales` dan `merchant_product_daily_sales`: read model per merchant/business date.
+- `insight_jobs`: queue state, attempt, due time, requester, dan deduplication period.
+- `business_insights`: immutable title/summary/recommendations dengan source yang jujur.
+- `merchants.timezone`: menentukan business-date boundary; default `Asia/Jakarta`.
+
+Migration `002` additive menambah schema dan role Owner. Migration `003` membuat reporting event
+untuk confirmed transaction lama tanpa reset database.

@@ -40,17 +40,29 @@ Sebagai Admin, aku ingin membuat, edit, archive, dan restore product. SKU harus 
 
 Sebagai Admin, aku ingin mencatat payment correction dan resolve inventory discrepancy dengan reason/note supaya original event tetap immutable dan audit-able.
 
+## Owner
+
+### US-10 — Laporan tanpa mengganggu kasir
+
+Sebagai Owner, aku ingin melihat sales, AOV, daily series, dan top product beserta waktu freshness
+supaya keputusan bisnis tidak membebani settlement path.
+
+### US-11 — Insight yang jujur
+
+Sebagai Owner, aku ingin generate insight secara async dan tahu apakah hasilnya berasal dari external
+AI atau local analytics, termasuk status queued/failed.
+
 ## Sistem
 
-### US-10 — Lost response yang aman
+### US-12 — Lost response yang aman
 
 Sebagai sistem, ketika backend sudah commit tetapi response hilang, retry ID/payload yang sama harus menghasilkan `ALREADY_PROCESSED`, bukan row baru.
 
-### US-11 — Partial batch
+### US-13 — Partial batch
 
 Sebagai sistem, satu candidate yang invalid tidak boleh menggagalkan candidate lain dalam batch, dan response order harus mengikuti request order.
 
-### US-12 — Offline lease
+### US-14 — Offline lease
 
 Sebagai sistem, checkout boleh lanjut sampai 72 jam sejak successful online authentication. Sesudah lease habis, existing data tetap readable/queued tetapi sale baru menunggu re-authentication.
 
@@ -66,9 +78,13 @@ flowchart LR
   Admin --> Catalog["Kelola catalog/pricing"]
   Admin --> Correct["Correction"]
   Admin --> Reconcile["Inventory reconciliation"]
+  Owner --> Dashboard["Sales dashboard"]
+  Owner --> Insight["Generate insight"]
   Checkout --> IDB["Atomic local persistence"]
   Sync --> API["Idempotent backend acceptance"]
   API --> Worker["Eventual inventory worker"]
+  API --> Reporting["Eventual reporting projection"]
+  Reporting --> Dashboard
 ```
 
 ## Journey ringkas

@@ -11,6 +11,7 @@ Ini adalah sumber utama product dan engineering knowledge untuk COMPOS. Mulai da
 | Role dan authorization       | [Role & Permissions](role_permissions.md)                                                                                      |
 | Mapping requirement ke bukti | [Traceability Matrix](traceability_matrix.md)                                                                                  |
 | Arsitektur dan boundary      | [System Architecture](system_architecture.md)                                                                                  |
+| Scaling dan capacity         | [Scaling Strategy](scaling_strategy.md)                                                                                        |
 | Offline sync                 | [Sync Protocol](sync_protocol.md)                                                                                              |
 | Data model                   | [Database Design](database_design.md)                                                                                          |
 | Pilihan teknologi            | [Tech Stack](tech_stack.md)                                                                                                    |

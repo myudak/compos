@@ -6,11 +6,11 @@ production environment.
 
 ## Resource yang dibuat
 
-| Resource                  | Render plan | Fungsi                                                           |
-| ------------------------- | ----------- | ---------------------------------------------------------------- |
-| `compos-demo`             | `free`      | Fastify API sekaligus host production build COMPOS Operator PWA. |
-| `compos-inventory-worker` | `starter`   | Continuous worker untuk backend outbox dan inventory movement.   |
-| `compos-demo-db`          | `free`      | PostgreSQL canonical ledger, session, audit, dan outbox.         |
+| Resource                   | Render plan | Fungsi                                                       |
+| -------------------------- | ----------- | ------------------------------------------------------------ |
+| `compos-demo`              | `free`      | Fastify API sekaligus host Operator `/` dan Owner `/owner/`. |
+| `compos-background-worker` | `starter`   | Continuous inventory, reporting, dan insight lanes.          |
+| `compos-demo-db`           | `free`      | PostgreSQL canonical ledger, session, audit, dan outbox.     |
 
 Web dan API sengaja memakai origin yang sama supaya Blueprint tidak membutuhkan wiring public URL
 lintas service. Worker tetap process independen agar settlement dan inventory projection tidak
@@ -43,6 +43,7 @@ diam-diam mengubah sandbox yang sudah dibuat.
 | ----- | ------------ | -------- | ------ |
 | Kasir | `KEDAI-NUSA` | `RANI`   | `1234` |
 | Admin | `KEDAI-NUSA` | `ADMIN`  | `9999` |
+| Owner | `KEDAI-NUSA` | `OWNER`  | `7777` |
 
 Device activation code: `COMPOS-DEMO`.
 
@@ -61,7 +62,7 @@ curl -H "Accept: text/plain" "$COMPOS_URL/metrics"
 
 Expected minimum:
 
-- `/` dan deep route seperti `/transactions/demo` mengembalikan PWA, bukan 404;
+- `/`, `/owner/`, dan deep route masing-masing mengembalikan PWA yang benar, bukan 404;
 - `/health` mengembalikan `status: ok` dan `database: reachable`;
 - login RANI berhasil setelah device activation;
 - offline checkout tetap ada setelah reload;

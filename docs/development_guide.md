@@ -11,7 +11,9 @@ pnpm db:reset
 pnpm dev
 ```
 
-`pnpm dev` menjalankan COMPOS Operator di port `5173`, API di `3001`, dan worker. Reset menghapus schema `public` dan menolak database yang namanya bukan `operator_pos` atau `operator_pos_*`.
+`pnpm dev` menjalankan COMPOS Operator di `5173`, COMPOS Owner di `5174`, API di `3001`, dan worker.
+Reset menghapus schema `public` dan menolak database yang namanya bukan `operator_pos` atau
+`operator_pos_*`.
 
 ## Environment variables
 

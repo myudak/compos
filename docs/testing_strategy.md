@@ -36,3 +36,11 @@ Integration test memakai database terisolasi `operator_pos_test`. Playwright men
 ## Evidence dan batasannya
 
 Automated tests adalah executable evidence untuk behavior yang repeatable. Demo manual tetap diperlukan untuk UX dan presentasi, sedangkan load, security, accessibility, serta restore drills perlu dilakukan sebelum production. Test yang bergantung ke time/random/network harus memakai injected ports atau controlled fixtures supaya deterministic.
+
+## Mixed-load evidence
+
+`pnpm test:load` menjalankan 50 merchant selama 15 detik dengan concurrent settlement, Admin access,
+Owner dashboard, insight jobs, dan worker lanes. Harness memverifikasi canonical ledger count sama
+dengan unique IDs dan reporting projection. Target p95: local enqueue `<500 ms`, settlement `<750 ms`,
+dashboard `<1.5 s`. `pnpm test:load:500` adalah capacity profile lima menit yang tidak dijalankan
+otomatis pada laptop tanpa mencatat environment.

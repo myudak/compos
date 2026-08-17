@@ -64,5 +64,5 @@ diselesaikan lewat audited reconciliation.
 
 COMPOS dianggap menjaga jaminan utamanya ketika demo dan automated tests membuktikan offline
 checkout, reload recovery, reconnect settlement, lost-response retry, partial batch, multi-device
-operation, session/device revocation, immutable correction, serta eventual inventory
-reconciliation.
+operation, session/device revocation, immutable correction, eventual inventory reconciliation,
+reporting convergence, dan workload isolation saat Owner membaca analytics.

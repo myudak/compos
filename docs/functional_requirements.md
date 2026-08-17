@@ -20,12 +20,17 @@
 | FR-16 | Catalog refresh dan stale-catalog operation.                            | Refresh saat login/start/reconnect/manual; historical snapshot diterima backend. |
 | FR-17 | Session dan offline lease.                                              | Token 12 jam, checkout lease 72 jam, data tetap ada setelah expiry.              |
 | FR-18 | Merchant isolation dan audit history.                                   | Semua query/mutation scoped ke merchant; Admin mutation diaudit.                 |
+| FR-19 | Separate Owner access.                                                  | Owner-only PWA/API; counter dan Admin role ditolak.                              |
+| FR-20 | Sales dashboard maksimal 90 hari.                                       | Daily series, top products, AOV, data-as-of, projection lag, merchant timezone.  |
+| FR-21 | Async insight generation.                                               | Queued job, status polling, history, aggregate-only provider, labelled fallback. |
+| FR-22 | Replay-safe reporting.                                                  | Transaction identity mencegah aggregate ganda; void tidak masuk projection.      |
 
 ## Business rules
 
 - PIN harus numerik, panjang 4–8 digit.
 - Admin tidak boleh demote/deactivate dirinya sendiri atau menghapus final active Admin.
-- Role yang didukung hanya `OPERATOR` dan `ADMIN`; semua permission tetap divalidasi server-side.
+- Role produk `OPERATOR`, `ADMIN`, dan `OWNER`; Admin hanya dapat membuat Operator/Admin dan semua
+  permission tetap divalidasi server-side.
 - Logout membersihkan active cart dan session setelah konfirmasi, tetapi device identity, catalog, confirmed sales, dan outbox tetap aman.
 - Catalog administration online-only. Perubahan stock hanya lewat reconciliation.
 - Harga/catalog offline boleh stale; item and price snapshot pada transaksi menjadi historical truth.

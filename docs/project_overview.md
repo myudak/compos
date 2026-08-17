@@ -4,7 +4,7 @@ COMPOS adalah aplikasi kasir offline-first untuk merchant dengan counter yang ko
 
 ## Outcome produk
 
-Kasir bisa login, memuat katalog merchant, checkout dengan Cash, Static QRIS, atau Transfer, lalu menerbitkan provisional receipt walaupun sedang offline. Saat koneksi kembali, COMPOS menyelesaikan queued sales ke backend secara idempotent. Admin merchant mengelola akun kasir, device, katalog dan harga, correction, discrepancy, serta audit history.
+Kasir bisa login, memuat katalog merchant, checkout dengan Cash, Static QRIS, atau Transfer, lalu menerbitkan provisional receipt walaupun sedang offline. Saat koneksi kembali, COMPOS menyelesaikan queued sales ke backend secara idempotent. Admin merchant mengelola akun kasir, device, katalog dan harga, correction, discrepancy, serta audit history. Owner memakai PWA terpisah untuk membaca eventual sales projection, product performance, freshness, dan insight history.
 
 ## Janji correctness
 
@@ -17,13 +17,14 @@ Kasir bisa login, memuat katalog merchant, checkout dengan Cash, Static QRIS, at
 
 ## Batas aplikasi
 
-Repo ini mengimplementasikan COMPOS Operator sebagai installable React PWA beserta API dan worker-nya. Merchant memakai role `OPERATOR` untuk checkout dan `ADMIN` untuk pengelolaan serta exception workflow.
+Repo ini mengimplementasikan COMPOS Operator dan COMPOS Owner sebagai dua installable React PWA beserta API dan satu multi-lane worker. Merchant memakai `OPERATOR` untuk checkout, `ADMIN` untuk pengelolaan/exception workflow, dan `OWNER` untuk intelligence read path.
 
 ## Struktur repo
 
 ```text
 apps/
   operator-web/    React, Vite, PWA, IndexedDB
+  owner-web/       React, Vite, online-first reporting PWA
   api/             Fastify, PostgreSQL, worker
 packages/
   contracts/       Runtime Zod schemas dan inferred DTOs
@@ -34,7 +35,7 @@ Sengaja cuma ada satu shared runtime package. PostgreSQL tetap dimiliki API, sed
 
 ## Di luar scope
 
-- Native React Native app atau aplikasi role terpisah.
+- Native React Native app.
 - Central inventory reservation atau strong consistency lintas device saat offline.
 - Public self-signup, payment-gateway verification untuk Static QRIS/Transfer, dan broker seperti RabbitMQ.
 - Production multi-region deployment; dokumen deployment menjelaskan jalur menuju sana, bukan mengklaim prototype sudah live-grade.

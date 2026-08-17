@@ -22,6 +22,10 @@ Matrix ini menghubungkan product requirement ke implementation boundary, API, au
 | FR-16 Stale catalog      | Bootstrap refresh + local catalog replacement                           | Catalog replacement + reconnect E2E                | Offline pakai catalog lama, lalu refresh             |
 | FR-17 Session lease      | JWT `jti`, server sessions, local 72h lease                             | Expiry/revocation/unit/E2E                         | Expired lease: data ada, checkout blocked            |
 | FR-18 Isolation & audit  | Merchant-scoped repositories; audit events                              | Cross-merchant and audit integration               | Buka Admin audit context                             |
+| FR-19 Owner boundary     | Separate PWA; Owner-only routes; provisioning CLI                       | Role contract + PostgreSQL access integration      | Login Owner; counter endpoint menghasilkan 403       |
+| FR-20 Sales dashboard    | Daily/product read models; reporting pool                               | Projection convergence + hosted fallback tests     | Settle sale lalu lihat freshness dan top product     |
+| FR-21 Async insight      | Insight queue; provider validation; local fallback                      | Queued→completed integration + load harness        | Generate lalu cek source `LOCAL_ANALYTICS`           |
+| FR-22 Reporting replay   | `reporting_applied_transactions`; reporting lane                        | Replay-safe integration; ledger comparison         | Replay event tanpa aggregate ganda                   |
 
 ## NFR evidence
 
@@ -32,6 +36,7 @@ Matrix ini menghubungkan product requirement ke implementation boundary, API, au
 | Maintainability        | Workspace boundaries, canonical contracts, strict typecheck/lint, source-size rules.            |
 | Observability          | `/health`, Prometheus-format `/metrics`, request/batch/transaction structured logs.             |
 | Recoverability         | Guarded reset untuk prototype; deployment/runbook mendefinisikan backup/PITR dan restore drill. |
+| Scaling/isolation      | Pool budgets, lane metrics, 50-merchant mixed-load p95 dan convergence evidence.                |
 
 ## Cara menjaga matrix tetap berguna
 
