@@ -121,7 +121,7 @@ export function ProductsPage() {
         <span>
           <strong className="text-foreground">Kenapa tidak diblokir saat stok nol?</strong> Beberapa
           kasir dapat menjual offline bersamaan. Penjualan historis tetap diterima; proyeksi negatif
-          ditandai sebagai discrepancy untuk rekonsiliasi admin.
+          ditandai sebagai conflict untuk ditinjau Owner.
         </span>
       </div>
     </div>

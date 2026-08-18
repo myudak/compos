@@ -1,7 +1,8 @@
 import type { PaymentMethod, PaymentVerificationType } from "@/infrastructure/persistence/models"
 
 export function verificationTypeFor(method: PaymentMethod): PaymentVerificationType {
-  return method === "CASH" ? "SYSTEM_VERIFIABLE" : "OPERATOR_ASSERTED"
+  void method
+  return "OPERATOR_VERIFIED"
 }
 
 export function validatePayment(

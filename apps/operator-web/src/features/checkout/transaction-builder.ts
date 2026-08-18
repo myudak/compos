@@ -34,6 +34,8 @@ export function buildLocalTransaction(
     operatorName: context.operatorName,
     items: input.items.map(({ product, quantity }) => ({
       productId: product.id,
+      sku: product.sku,
+      catalogVersion: product.catalogVersion,
       name: product.name,
       quantity,
       unitPrice: product.price,

@@ -1,5 +1,5 @@
 import type { OutboxEntry, SyncStatus } from "@/infrastructure/persistence/models"
-import type { SyncResult } from "@operator/contracts"
+import type { SyncResult } from "@/infrastructure/api/api-client"
 
 export const BATCH_SIZE = 25
 const BASE_RETRY_MS = 1_000
@@ -17,7 +17,7 @@ export function isOutboxEntryDue(entry: OutboxEntry, now: number) {
 export type ResultTransition = {
   outbox: "DELETE" | "PENDING" | "FAILED"
   syncStatus: SyncStatus
-  settlementStatus?: "SETTLED"
+  settlementStatus?: "SETTLED" | "CONFLICT" | "FAILED"
   retryCount: number
   error?: string
   nextRetryAt?: string
@@ -30,7 +30,7 @@ export function transitionForResult(
   now: number,
   random = Math.random,
 ): ResultTransition {
-  if (result?.status === "ACCEPTED" || result?.status === "ALREADY_PROCESSED") {
+  if (result?.status === "SYNCED") {
     return {
       outbox: "DELETE",
       syncStatus: "SYNCED",
@@ -40,11 +40,30 @@ export function transitionForResult(
     }
   }
 
+  if (result?.status === "CONFLICT") {
+    return {
+      outbox: "DELETE",
+      syncStatus: "CONFLICT",
+      settlementStatus: "CONFLICT",
+      retryCount: currentRetryCount,
+      error: result.reason,
+      receivedAtBackend: result.receivedAtBackend,
+    }
+  }
+
+  if (result?.status === "FAILED") {
+    return {
+      outbox: "DELETE",
+      syncStatus: "FAILED",
+      settlementStatus: "FAILED",
+      retryCount: currentRetryCount,
+      error: result.reason ?? "Backend menolak settlement",
+      receivedAtBackend: result.receivedAtBackend,
+    }
+  }
+
   const retryCount = currentRetryCount + 1
   const error = result?.reason ?? (result ? "RETRYABLE_ERROR" : "MISSING_BATCH_RESULT")
-  if (result?.status === "REJECTED_PERMANENT") {
-    return { outbox: "FAILED", syncStatus: "FAILED", retryCount, error }
-  }
   return {
     outbox: "PENDING",
     syncStatus: "FAILED",

@@ -68,9 +68,7 @@ export function TransactionFinancialDetails({ transaction }: { transaction: Loca
             <div className="flex-1">
               <div className="text-xs font-medium">{paymentLabels[transaction.paymentMethod]}</div>
               <div className="mt-0.5 text-[10px] text-muted-foreground">
-                {transaction.paymentVerificationType === "OPERATOR_ASSERTED"
-                  ? "Dikonfirmasi operator dari sinyal eksternal"
-                  : "Tidak memerlukan provider eksternal"}
+                Diverifikasi Operator saat checkout
               </div>
             </div>
           </div>
@@ -111,7 +109,7 @@ function IntegrityNotice({ transaction }: { transaction: LocalTransaction }) {
         </div>
         <p className="mt-1 text-[10px] leading-4 text-muted-foreground">
           {settled
-            ? "Operator tidak dapat mengubah transaksi settled. Koreksi dibuat Admin sebagai audit record baru."
+            ? "Operator tidak dapat mengubah transaksi settled. Koreksi dibuat Owner sebagai audit record baru."
             : "Transaksi aman di perangkat, tetapi belum final sampai backend menerimanya."}
         </p>
       </div>

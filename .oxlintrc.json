@@ -9,6 +9,7 @@
     "**/coverage/**",
     "**/playwright-report/**",
     "**/test-results/**",
+    "packages/api-client/src/generated/**",
     ".agents/**",
     ".claude/**"
   ],
@@ -59,6 +60,10 @@
         "apps/operator-web/e2e/**/*.{ts,mjs}"
       ],
       "env": { "node": true }
+    },
+    {
+      "files": ["apps/operator-web/e2e/**/*.ts"],
+      "rules": { "max-lines-per-function": "off" }
     },
     {
       "files": ["apps/operator-web/src/features/**/*page.tsx"],

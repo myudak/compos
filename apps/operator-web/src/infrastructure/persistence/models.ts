@@ -11,17 +11,26 @@ export type Product = {
   accent: string
   featured?: boolean
   active?: boolean
+  catalogVersion: number
   lowStockThreshold?: number
   updatedAt?: string
 }
 
-export type PaymentMethod = "CASH" | "STATIC_QRIS" | "TRANSFER"
-export type PaymentVerificationType = "SYSTEM_VERIFIABLE" | "OPERATOR_ASSERTED"
-export type SyncStatus = "LOCAL_ONLY" | "SYNCING" | "SYNCED" | "FAILED"
-export type SettlementStatus = "PROVISIONAL" | "SETTLED"
+export type PaymentMethod = "CASH" | "STATIC_QRIS" | "BANK_TRANSFER"
+export type PaymentVerificationType = "OPERATOR_VERIFIED"
+export type SyncStatus = "LOCAL_ONLY" | "SYNCING" | "SYNCED" | "CONFLICT" | "FAILED"
+export type SettlementStatus =
+  | "PROVISIONAL"
+  | "QUEUED"
+  | "SETTLED"
+  | "CONFLICT"
+  | "FAILED"
+  | "VOIDED_LOCAL"
 
 export type TransactionItem = {
   productId: string
+  sku: string
+  catalogVersion: number
   name: string
   quantity: number
   unitPrice: number
@@ -70,7 +79,7 @@ export type SyncAttempt = {
   id?: number
   transactionId: string
   invoiceNumber: string
-  result: "ACCEPTED" | "ALREADY_PROCESSED" | "REJECTED_PERMANENT" | "RETRYABLE_ERROR"
+  result: "SYNCED" | "CONFLICT" | "FAILED"
   createdAt: string
   durationMs: number
 }
@@ -95,8 +104,9 @@ export type AuthSession = {
   operator: {
     id: string
     name: string
-    role: "OPERATOR" | "ADMIN"
+    role: "OPERATOR"
   }
+  offlineLease: string
   expiresAt: string
   offlineLeaseExpiresAt: string
 }

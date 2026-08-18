@@ -1,107 +1,170 @@
 import {
-  apiErrorResponseSchema,
-  insightJobResponseSchema,
-  insightListResponseSchema,
+  auditEventListResponseSchema,
+  deviceListResponseSchema,
+  deviceResponseSchema,
   loginResponseSchema,
+  managedUserListResponseSchema,
+  managedUserResponseSchema,
+  mutationResponseSchema,
   ownerDashboardResponseSchema,
-  registerDeviceResponseSchema,
-} from "@operator/contracts"
-import type { z, ZodType } from "zod"
+  paymentListResponseSchema,
+  reconciliationListResponseSchema,
+  reconciliationSchema,
+  requestKpos,
+  resolveApiUrl,
+  successSchema,
+  syncReceiptsResponseSchema,
+} from "@k-pos/api-client"
 
-const API_URL =
-  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ??
-  (import.meta.env.DEV ? "http://localhost:3001" : "")
+const API_URL = resolveApiUrl(import.meta.env.VITE_API_URL, import.meta.env.DEV)
+const SESSION_KEY = "kpos-owner-session"
 
-export type OwnerSession = {
-  token: string
-  merchantId: string
-  ownerName: string
-}
+export type OwnerSession = { token: string; name: string; email: string; merchantId: string }
 
-async function request<TSchema extends ZodType>(
-  path: string,
-  schema: TSchema,
-  init: RequestInit = {},
-  token?: string,
-): Promise<z.output<TSchema>> {
-  const headers = new Headers(init.headers)
-  if (init.body) headers.set("content-type", "application/json")
-  if (token) headers.set("authorization", `Bearer ${token}`)
-  const response = await fetch(`${API_URL}${path}`, { ...init, headers })
-  const body: unknown = await response.json().catch(() => null)
-  if (!response.ok) {
-    const error = apiErrorResponseSchema.safeParse(body)
-    throw new Error(error.success ? error.data.message : `Request gagal (${response.status})`)
-  }
-  return schema.parse(body)
-}
-
-export async function loginOwner(input: {
-  merchantCode: string
-  operatorCode: string
-  pin: string
-  activationCode: string
-}) {
-  const deviceId = getDeviceId()
-  await request("/v1/devices/register", registerDeviceResponseSchema, {
+export async function loginOwner(email: string, password: string) {
+  const response = await requestKpos(API_URL, "/api/v1/auth/login", loginResponseSchema, {
     method: "POST",
-    body: JSON.stringify({
-      merchantCode: input.merchantCode,
-      activationCode: input.activationCode,
-      deviceId,
-      deviceName: "Owner Dashboard",
-    }),
+    body: JSON.stringify({ email, password }),
   })
-  const result = await request("/v1/auth/login", loginResponseSchema, {
-    method: "POST",
-    body: JSON.stringify({
-      merchantCode: input.merchantCode,
-      operatorCode: input.operatorCode,
-      pin: input.pin,
-      deviceId,
-    }),
-  })
-  if (result.operator.role !== "OWNER") {
-    throw new Error("Akun ini untuk COMPOS Operator. Buka aplikasi kasir untuk melanjutkan.")
+  if (response.data.user.role !== "OWNER") {
+    const destination = response.data.user.role === "ENTRY" ? "Entry" : "Operator"
+    throw new Error(`Akun ini bukan Owner. Lanjutkan di ${destination} app.`)
   }
   const session: OwnerSession = {
-    token: result.token,
-    merchantId: result.merchantId,
-    ownerName: result.operator.name,
+    token: response.data.access_token,
+    name: response.data.user.full_name,
+    email: response.data.user.email,
+    merchantId: response.data.user.id_merchant,
   }
-  localStorage.setItem("compos-owner-session", JSON.stringify(session))
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
   return session
 }
 
 export function storedSession(): OwnerSession | null {
-  const value = localStorage.getItem("compos-owner-session")
-  return value ? (JSON.parse(value) as OwnerSession) : null
+  const raw = localStorage.getItem(SESSION_KEY)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as OwnerSession
+  } catch {
+    localStorage.removeItem(SESSION_KEY)
+    return null
+  }
 }
 
-export function clearSession() {
-  localStorage.removeItem("compos-owner-session")
+export async function logoutOwner(session: OwnerSession) {
+  try {
+    await call(session, "/api/v1/auth/logout", mutationResponseSchema, { method: "POST" })
+  } catch {
+    // Expired token must not block local logout.
+  }
+  localStorage.removeItem(SESSION_KEY)
+}
+
+function call<T extends Parameters<typeof requestKpos>[2]>(
+  session: OwnerSession,
+  path: string,
+  schema: T,
+  init?: RequestInit,
+) {
+  return requestKpos(API_URL, path, schema, init, session.token)
 }
 
 export const ownerApi = {
-  dashboard: (session: OwnerSession) =>
-    request("/v1/owner/dashboard", ownerDashboardResponseSchema, {}, session.token),
-  insights: (session: OwnerSession) =>
-    request("/v1/owner/insights", insightListResponseSchema, {}, session.token),
-  generate: (session: OwnerSession) =>
-    request(
-      "/v1/owner/insights/generate",
-      insightJobResponseSchema,
-      { method: "POST" },
-      session.token,
+  dashboard: async (session: OwnerSession) =>
+    (await call(session, "/api/v1/owner/dashboard", ownerDashboardResponseSchema)).data,
+  users: async (session: OwnerSession) =>
+    (await call(session, "/api/v1/users", managedUserListResponseSchema)).data.items,
+  createUser: async (
+    session: OwnerSession,
+    input: { full_name: string; email: string; password: string; role: "ENTRY" | "OPERATOR" },
+  ) =>
+    (
+      await call(session, "/api/v1/users", managedUserResponseSchema, {
+        method: "POST",
+        body: JSON.stringify(input),
+      })
+    ).data,
+  setUserActive: async (session: OwnerSession, id: string, is_active: boolean) =>
+    (
+      await call(session, `/api/v1/users/${id}/status`, managedUserResponseSchema, {
+        method: "PATCH",
+        body: JSON.stringify({ is_active }),
+      })
+    ).data,
+  changePassword: (session: OwnerSession, id: string, new_password: string) =>
+    call(session, `/api/v1/users/${id}/change-password`, mutationResponseSchema, {
+      method: "POST",
+      body: JSON.stringify({ new_password }),
+    }),
+  devices: async (session: OwnerSession) =>
+    (await call(session, "/api/v1/devices", deviceListResponseSchema)).data,
+  createDevice: async (session: OwnerSession, name: string) =>
+    (
+      await call(session, "/api/v1/devices", deviceResponseSchema, {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      })
+    ).data,
+  revokeDevice: (session: OwnerSession, id: string) =>
+    call(session, `/api/v1/devices/${id}`, deviceResponseSchema, { method: "DELETE" }),
+  payments: async (session: OwnerSession) =>
+    (await call(session, "/api/v1/payments", paymentListResponseSchema)).data.items,
+  openReconciliation: async (
+    session: OwnerSession,
+    paymentId: string,
+    reason: string,
+    evidence_note?: string,
+  ) =>
+    (
+      await call(
+        session,
+        `/api/v1/payments/${paymentId}/reconciliations`,
+        successSchema(reconciliationSchema),
+        { method: "POST", body: JSON.stringify({ reason, evidence_note }) },
+      )
+    ).data,
+  reconciliations: async (session: OwnerSession) =>
+    (await call(session, "/api/v1/payment-reconciliations", reconciliationListResponseSchema)).data
+      .items,
+  resolveReconciliation: async (
+    session: OwnerSession,
+    id: string,
+    input: {
+      action: "VALID" | "INVALID"
+      resolution_note: string
+      inventory_returned?: boolean
+    },
+  ) =>
+    (
+      await call(
+        session,
+        `/api/v1/payment-reconciliations/${id}/resolve`,
+        successSchema(reconciliationSchema),
+        { method: "POST", body: JSON.stringify(input) },
+      )
+    ).data,
+  failures: async (session: OwnerSession) =>
+    (await call(session, "/api/v1/sync/failures", syncReceiptsResponseSchema)).data.items,
+  retryReceipt: (session: OwnerSession, id: string) =>
+    call(session, `/api/v1/sync/receipts/${id}/retry`, mutationResponseSchema, {
+      method: "POST",
+    }),
+  resolveConflict: (session: OwnerSession, transactionId: string, action: "CONFIRM" | "VOID") =>
+    call(
+      session,
+      `/api/v1/transactions/${transactionId}/conflict-resolution`,
+      mutationResponseSchema,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          action,
+          notes:
+            action === "CONFIRM"
+              ? "Owner confirms goods were delivered despite stock shortage"
+              : "Owner confirms goods were not delivered",
+        }),
+      },
     ),
-  job: (session: OwnerSession, jobId: string) =>
-    request(`/v1/owner/insight-jobs/${jobId}`, insightJobResponseSchema, {}, session.token),
-}
-
-function getDeviceId() {
-  const existing = localStorage.getItem("compos-owner-device")
-  if (existing) return existing
-  const id = `owner-${crypto.randomUUID()}`
-  localStorage.setItem("compos-owner-device", id)
-  return id
+  audit: async (session: OwnerSession) =>
+    (await call(session, "/api/v1/audit-events", auditEventListResponseSchema)).data.items,
 }

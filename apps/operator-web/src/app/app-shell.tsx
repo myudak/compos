@@ -8,10 +8,7 @@ import {
   IconLayoutDashboard,
   IconPackage,
   IconReceipt2,
-  IconScale,
   IconSettings,
-  IconUsers,
-  IconTags,
   IconWifiOff,
 } from "@tabler/icons-react"
 import { NavLink, useLocation } from "react-router-dom"
@@ -31,9 +28,6 @@ const navItems = [
   { label: "Transaksi", href: "/transactions", icon: IconReceipt2 },
   { label: "Produk", href: "/products", icon: IconPackage },
   { label: "Sync & Data", href: "/sync", icon: IconArrowsExchange },
-  { label: "Reconciliation", href: "/reconciliation", icon: IconScale, adminOnly: true },
-  { label: "Akun & Device", href: "/admin/users", icon: IconUsers, adminOnly: true },
-  { label: "Kelola Katalog", href: "/admin/catalog", icon: IconTags, adminOnly: true },
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -43,9 +37,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { lastSyncAt, pendingCount } = useSyncOverview()
   const session = useCurrentSession()
   const merchant = useMerchantProfile()
-  const visibleNavItems = navItems.filter(
-    (item) => !item.adminOnly || session?.operator.role === "ADMIN",
-  )
+  const visibleNavItems = navItems
 
   useEffect(() => {
     if (connection !== "ONLINE") return
@@ -85,17 +77,16 @@ export function AppShell({ children }: { children: ReactNode }) {
         merchantName={merchant?.name}
         merchantId={merchant?.id}
         operatorName={session?.operator.name}
-        admin={session?.operator.role === "ADMIN"}
         pendingCount={pendingCount}
       />
 
       <div className="relative z-10 lg:pl-[212px]">
         <header className="sticky top-0 z-20 flex h-[62px] items-center justify-between border-b bg-background/86 px-3 backdrop-blur-xl sm:px-5">
           <div className="flex items-center gap-2 lg:hidden">
-            <img src="/brand/compos-icon.png" alt="" className="size-8 rounded-md object-cover" />
+            <img src="/brand/kpos-icon.png" alt="" className="size-8 rounded-md object-cover" />
             <div>
               <div className="text-xs font-semibold">{merchant?.name ?? "Merchant"}</div>
-              <div className="text-[9px] text-muted-foreground">COMPOS Operator</div>
+              <div className="text-[9px] text-muted-foreground">K-POS Operator</div>
             </div>
           </div>
           <div className="hidden min-w-0 items-center gap-2 lg:flex">
@@ -188,15 +179,14 @@ function DesktopSidebar(props: {
   merchantName?: string
   merchantId?: string
   operatorName?: string
-  admin: boolean
   pendingCount: number
 }) {
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[212px] flex-col border-r bg-background/92 backdrop-blur-xl lg:flex">
       <div className="flex h-[62px] items-center gap-2.5 border-b px-4">
-        <img src="/brand/compos-icon.png" alt="COMPOS" className="size-8 rounded-md object-cover" />
+        <img src="/brand/kpos-icon.png" alt="K-POS" className="size-8 rounded-md object-cover" />
         <div>
-          <div className="text-sm font-semibold tracking-[0.08em]">COMPOS</div>
+          <div className="text-sm font-semibold tracking-[0.08em]">K-POS</div>
         </div>
       </div>
       <div className="px-2 py-3">
@@ -254,9 +244,7 @@ function DesktopSidebar(props: {
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-xs font-medium">{props.operatorName ?? "Operator"}</div>
-            <div className="text-[10px] text-muted-foreground">
-              {props.admin ? "Administrator" : "Kasir"}
-            </div>
+            <div className="text-[10px] text-muted-foreground">Operator</div>
           </div>
           <span className="size-1.5 rounded-full bg-emerald-400" />
         </div>

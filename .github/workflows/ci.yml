@@ -1,62 +1,97 @@
-name: CI
+name: Cross-repo CI
 
 on:
   push:
   pull_request:
 
+concurrency:
+  group: kpos-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: operator
-          POSTGRES_PASSWORD: operator
-          POSTGRES_DB: operator_pos
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U operator -d operator_pos"
-          --health-interval 3s
-          --health-timeout 3s
-          --health-retries 15
-
+    timeout-minutes: 50
     env:
-      DATABASE_URL: postgres://operator:operator@127.0.0.1:5432/operator_pos
-      JWT_SECRET: ci-only-operator-pos-secret
-      DEVICE_ACTIVATION_CODE: COMPOS-DEMO
-      CORS_ORIGIN: http://127.0.0.1:4173
       CI: true
+      KPOS_BACKEND_REF: e3da70f7f16d290133f6a006f01e3d0e65f1201f
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout K-POS frontends
+        uses: actions/checkout@v4
+        with:
+          path: project_COMPPOS
+
+      - name: Checkout canonical backend
+        uses: actions/checkout@v4
+        with:
+          repository: SEA18-3/k-pos-be
+          ref: ${{ env.KPOS_BACKEND_REF }}
+          path: k-pos-be
+
       - uses: pnpm/action-setup@v4
         with:
+          version: 10.15.0
           run_install: false
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @operator/web exec playwright install --with-deps chromium
-      - run: pnpm db:reset
-      - run: pnpm format:check
-      - run: pnpm docs:check
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm test:integration
-      - run: pnpm build
-      - run: pnpm test:load
-      - run: pnpm test:e2e
+          cache-dependency-path: project_COMPPOS/pnpm-lock.yaml
+
+      - name: Install frontend workspaces
+        working-directory: project_COMPPOS
+        run: pnpm install --frozen-lockfile
+
+      - name: Install backend
+        working-directory: k-pos-be
+        run: npm ci
+
+      - name: Backend static verification
+        working-directory: k-pos-be
+        run: npm run lint && npm test -- --runInBand && npm run build
+
+      - name: OpenAPI contract drift
+        working-directory: project_COMPPOS
+        run: pnpm openapi:check
+
+      - name: Frontend verification
+        working-directory: project_COMPPOS
+        run: pnpm format:check && pnpm docs:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build
+
+      - name: Start production-like stack
+        working-directory: project_COMPPOS
+        run: docker compose up -d --build
+
+      - name: PostgreSQL and RabbitMQ integration
+        working-directory: project_COMPPOS
+        run: pnpm test:integration
+
+      - name: Install Playwright browser
+        working-directory: project_COMPPOS
+        run: pnpm --filter @k-pos/operator-web exec playwright install --with-deps chromium
+
+      - name: Three-PWA end-to-end and Rabbit degraded mode
+        working-directory: project_COMPPOS
+        run: pnpm test:e2e
+
       - name: Upload Playwright artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-failure
           path: |
-            apps/operator-web/playwright-report
-            apps/operator-web/test-results
+            project_COMPPOS/apps/operator-web/playwright-report
+            project_COMPPOS/apps/operator-web/test-results
           if-no-files-found: ignore
+
+      - name: Container diagnostics
+        if: failure()
+        working-directory: project_COMPPOS
+        run: docker compose ps && docker compose logs --tail 300
+
+      - name: Stop stack
+        if: always()
+        working-directory: project_COMPPOS
+        run: docker compose down

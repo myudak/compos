@@ -29,7 +29,7 @@ export function fromNow(value?: string) {
 export const paymentLabels = {
   CASH: "Tunai",
   STATIC_QRIS: "QRIS Statis",
-  TRANSFER: "Transfer",
+  BANK_TRANSFER: "Transfer",
 } as const
 
 export function shortDeviceId(value: string) {

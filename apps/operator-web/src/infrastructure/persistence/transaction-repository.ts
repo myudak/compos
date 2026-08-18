@@ -67,16 +67,13 @@ export async function voidProvisionalTransaction(transactionId: string) {
       )
       await database.transactions.update(transactionId, {
         transactionStatus: "VOIDED",
-        syncStatus: "LOCAL_ONLY",
+        syncStatus: "SYNCED",
+        settlementStatus: "VOIDED_LOCAL",
         lastSyncError: undefined,
       })
       const entry = await database.outbox.where("transactionId").equals(transactionId).first()
       if (entry) {
-        await database.outbox.update(entry.id, {
-          status: "PENDING",
-          nextRetryAt: undefined,
-          lastError: undefined,
-        })
+        await database.outbox.delete(entry.id)
       }
       return { ...transaction, transactionStatus: "VOIDED" as const }
     },

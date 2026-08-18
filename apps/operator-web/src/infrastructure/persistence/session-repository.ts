@@ -2,7 +2,7 @@ import type { AuthSession } from "./models"
 import { readSetting, removeSetting, writeSetting } from "./settings-repository"
 
 const SESSION_KEY = "authSession"
-export const OFFLINE_LEASE_MS = 72 * 60 * 60 * 1_000
+export const OFFLINE_LEASE_MS = 7 * 24 * 60 * 60 * 1_000
 
 export async function getAuthSession(): Promise<AuthSession | null> {
   const stored = await readSetting(SESSION_KEY)

@@ -1,54 +1,60 @@
-# Protokol Offline Sync
+# Sync Protocol
 
 ## Local state machine
 
-```mermaid
-stateDiagram-v2
-  [*] --> PENDING: atomic checkout + outbox
-  PENDING --> SYNCING: due batch dipilih
-  SYNCING --> SETTLED: ACCEPTED / ALREADY_PROCESSED
-  SYNCING --> PENDING: retryable/network failure + backoff
-  SYNCING --> FAILED: permanent rejection
-  FAILED --> SYNCING: explicit retry
-  SYNCING --> PENDING: startup recovery
+```text
+PROVISIONAL -> QUEUED -> SETTLED
+                     -> CONFLICT
+                     -> FAILED
 ```
 
-## Sync envelope
+`PROVISIONAL` means locally durable. `QUEUED` means backend receipt and publish are durable. Only
+`SETTLED` means canonical transaction committed. Delivery outbox boleh dibersihkan setelah terminal,
+tetapi immutable local transaction/receipt history dipertahankan.
 
-`POST /v1/sync/transactions` menerima `schemaVersion: 1`, identity merchant/device/batch, dan 1–25 candidates. Setiap transaction membawa stable client ID, device timestamp, payment semantics, money totals, dan item snapshots. Result setiap candidate independen, tetapi urutan response tetap sama dengan input.
+## Enqueue
 
-| Result               | Local transition                                                |
-| -------------------- | --------------------------------------------------------------- |
-| `ACCEPTED`           | Tandai settled/synced, lalu hapus outbox item.                  |
-| `ALREADY_PROCESSED`  | Transition sukses yang sama; ini melindungi lost response.      |
-| `RETRYABLE_ERROR`    | Naikkan retry, simpan error, atur exponential backoff + jitter. |
-| `REJECTED_PERMANENT` | Tandai failed dan pertahankan evidence untuk review.            |
+`POST /api/v1/sync` accepts at most 100 items; Operator chunks at most 25 due records. Header
+`X-Device-ID` is authoritative. All request-shape validation is all-or-nothing: one malformed item
+rejects the batch before any receipt/publish.
 
-## Exactly-once business effect
+Per item:
 
-Transport tetap at-least-once. Exactly-once dicapai pada business effect lewat unique `(merchant_id, transaction_id)` dan canonical SHA-256 payload hash. ID sama + payload sama mengembalikan first receipt time; ID sama + payload berubah menghasilkan `ID_REUSE_PAYLOAD_MISMATCH` dan tidak pernah overwrite histori.
+1. validate device/session/merchant and money arithmetic;
+2. canonicalize and hash payload;
+3. create or reuse `SyncReceipt` by `(device_id, offline_uuid)`;
+4. reject same key/different hash with `409 IDEMPOTENCY_PAYLOAD_MISMATCH`;
+5. publish persistent Rabbit message with publisher confirm;
+6. return accepted count and `queued_at`.
 
-```mermaid
-sequenceDiagram
-    participant D as Device Outbox
-    participant A as API
-    participant P as PostgreSQL
+If receipt exists but publish fails, API returns retryable `503`. Dispatcher later republishes
+unpublished receipts; client may also retry identical payload safely.
 
-    D->>A: Transaction T / Payload H
-    A->>P: Insert transaction + items + event + outbox
-    P-->>A: COMMIT
-    A--xD: Response sukses hilang
+## Settlement
 
-    D->>A: Retry T / Payload H
-    A->>P: Find T and compare H
-    A-->>D: ALREADY_PROCESSED
-    D->>D: Mark settled and remove from outbox
-```
+Consumer sets receipt `PROCESSING`, then in one PostgreSQL transaction creates/reuses canonical
+transaction, immutable item snapshots, payment `VERIFIED`, and backend outbox events. ACK happens only
+after commit.
 
-## Scheduler dan failure behavior
+Transient failures route through TTL retry queues at 5, 30, and 120 seconds. Permanent/exhausted
+messages go DLQ and produce terminal `FAILED`. External HTTP response ordering never decides
+business identity.
 
-COMPOS mengambil outbox yang sudah due, dari paling lama, maksimal 25 item per batch. Scheduler jalan saat startup, browser `online` event, manual reconnect, dan interval 15 detik. `/health` probe punya timeout 3 detik dan sync service single-flight agar trigger tidak saling tabrak.
+## Receipt polling
 
-Hanya due records yang di-query, lalu transactions di-bulk-load dan di-map sekali. `retryCount` baru bertambah setelah failure. Startup mengembalikan abandoned `SYNCING` ke `PENDING`. Auth expired atau device revoked mem-pause sync dan meminta login ulang; queued sales tetap aman di device.
+`GET /api/v1/sync/receipts` accepts repeated `offline_uuid` query parameters, max 100. Status response
+includes receipt ID, offline UUID, state, canonical transaction ID, error, and timestamps. Auth errors
+pause sync and preserve local queue.
 
-API memproses candidates secara concurrent dalam batas batch, tetapi menyusun kembali hasil sesuai input order. Satu item gagal tidak menggagalkan item lain.
+## Conflict
+
+Stock shortage yields canonical transaction `PENDING` and receipt `CONFLICT`:
+
+- Owner confirm: stock movement idempotently applies, negative stock allowed, discrepancy/audit added;
+- Owner void: append-only correction marks effective sale void, no stock movement.
+
+## Stable payload
+
+Retry must preserve offline UUID, merchant/device-bound identity, item/product/name/SKU/unit price,
+catalog version, totals, payment method, and original timestamps. Backend validates arithmetic but does
+not reprice historical offline snapshot against latest catalog.

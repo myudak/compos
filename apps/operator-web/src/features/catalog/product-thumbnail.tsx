@@ -10,14 +10,14 @@ type ProductThumbnailData = {
 }
 
 const imageBySku: Readonly<Record<string, string>> = {
-  "DRK-001": "/products/kopi-susu-aren.png",
-  "DRK-002": "/products/iced-americano.png",
-  "DRK-003": "/products/caramel-latte.png",
-  "DRK-004": "/products/matcha-cloud.png",
-  "DRK-005": "/products/choco-sea-salt.png",
-  "DRK-006": "/products/yuzu-sparkling.png",
-  "FOD-001": "/products/nasi-ayam-matah.png",
-  "FOD-002": "/products/aren-croffle.png",
+  "KSA-01": "/products/kopi-susu-aren.png",
+  "IA-01": "/products/iced-americano.png",
+  "CL-01": "/products/caramel-latte.png",
+  "MC-01": "/products/matcha-cloud.png",
+  "CS-01": "/products/choco-sea-salt.png",
+  "YS-01": "/products/yuzu-sparkling.png",
+  "NAM-01": "/products/nasi-ayam-matah.png",
+  "AC-01": "/products/aren-croffle.png",
 }
 
 export function ProductThumbnail({

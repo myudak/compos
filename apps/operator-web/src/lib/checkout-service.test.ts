@@ -16,6 +16,7 @@ const product: Product = {
   category: "Kopi",
   price: 20_000,
   stock: 5,
+  catalogVersion: 1,
   accent: "#06b6d4",
 }
 
@@ -30,7 +31,9 @@ function transaction(id = "0197f0a0-test-transaction"): LocalTransaction {
     items: [
       {
         productId: product.id,
+        sku: product.sku,
         name: product.name,
+        catalogVersion: product.catalogVersion,
         quantity: 2,
         unitPrice: product.price,
         subtotal: 40_000,
@@ -40,7 +43,7 @@ function transaction(id = "0197f0a0-test-transaction"): LocalTransaction {
     discount: 0,
     total: 40_000,
     paymentMethod: "CASH",
-    paymentVerificationType: "SYSTEM_VERIFIABLE",
+    paymentVerificationType: "OPERATOR_VERIFIED",
     transactionStatus: "CONFIRMED",
     syncStatus: "LOCAL_ONLY",
     settlementStatus: "PROVISIONAL",
@@ -111,11 +114,10 @@ describe("offline local persistence", () => {
 
     expect(await db.transactions.get(sale.id)).toMatchObject({
       transactionStatus: "VOIDED",
-      syncStatus: "LOCAL_ONLY",
+      syncStatus: "SYNCED",
+      settlementStatus: "VOIDED_LOCAL",
     })
     expect((await db.products.get(product.id))?.stock).toBe(5)
-    expect(await db.outbox.where("transactionId").equals(sale.id).first()).toMatchObject({
-      status: "PENDING",
-    })
+    expect(await db.outbox.where("transactionId").equals(sale.id).first()).toBeUndefined()
   })
 })

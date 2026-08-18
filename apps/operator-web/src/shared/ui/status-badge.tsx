@@ -40,6 +40,7 @@ export function SyncBadge({ status }: { status: SyncStatus }) {
     LOCAL_ONLY: { label: "Pending Sync", variant: "warning" as const, icon: IconClock },
     SYNCING: { label: "Syncing", variant: "default" as const, icon: IconLoader2 },
     SYNCED: { label: "Synced", variant: "success" as const, icon: IconCloudCheck },
+    CONFLICT: { label: "Konflik", variant: "warning" as const, icon: IconAlertCircle },
     FAILED: { label: "Gagal", variant: "destructive" as const, icon: IconAlertCircle },
   }[status]
   const Icon = config.icon
@@ -52,13 +53,27 @@ export function SyncBadge({ status }: { status: SyncStatus }) {
 }
 
 export function SettlementBadge({ status }: { status: SettlementStatus }) {
-  return status === "SETTLED" ? (
-    <Badge variant="success">
-      <IconCircleCheck /> Settled
-    </Badge>
-  ) : (
+  if (status === "SETTLED")
+    return (
+      <Badge variant="success">
+        <IconCircleCheck /> Settled
+      </Badge>
+    )
+  if (status === "CONFLICT" || status === "FAILED")
+    return (
+      <Badge variant={status === "FAILED" ? "destructive" : "warning"}>
+        <IconAlertCircle /> {status === "FAILED" ? "Gagal" : "Butuh Owner"}
+      </Badge>
+    )
+  if (status === "VOIDED_LOCAL")
+    return (
+      <Badge variant="default">
+        <IconCircleCheck /> Void lokal
+      </Badge>
+    )
+  return (
     <Badge variant="warning">
-      <IconClock /> Provisional
+      <IconClock /> {status === "QUEUED" ? "Queued" : "Provisional"}
     </Badge>
   )
 }

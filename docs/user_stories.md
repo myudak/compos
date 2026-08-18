@@ -1,97 +1,42 @@
-# User Stories dan Use Cases
+# User Stories & Core Flows
 
-## Kasir
+## Operator
 
-### US-01 — Tetap jualan saat offline
+- Sebagai Operator, aku bisa login online di shared counter lalu lanjut memakai session terakhir saat
+  internet hilang, supaya pergantian shift tidak memblokir penjualan yang sedang berjalan.
+- Aku bisa checkout dan mendapatkan receipt lokal tanpa menunggu backend.
+- Aku bisa melihat sale masih provisional, sudah queued, conflict, failed, atau settled.
+- Data queued tidak hilang setelah reload/logout; operator switch baru membutuhkan online login.
 
-Sebagai kasir, aku ingin mengonfirmasi checkout tanpa koneksi agar antrean pelanggan tetap jalan. Sale harus tersimpan durable sebelum provisional receipt muncul dan status offline harus terlihat jelas.
+## Entry
 
-### US-02 — Pulih setelah browser reload
-
-Sebagai kasir, aku ingin cart, catalog, confirmed sales, dan queue tetap ada setelah reload atau restart supaya tidak perlu input ulang dan tidak kehilangan transaksi.
-
-### US-03 — Sync otomatis
-
-Sebagai kasir, aku ingin queued sales terkirim otomatis ketika koneksi balik tanpa menekan tombol per transaksi. Retry tidak boleh membuat duplicate settlement.
-
-### US-04 — Payment yang jujur
-
-Sebagai kasir, aku ingin Cash, Static QRIS, dan Transfer punya validation/label yang jelas supaya provisional receipt tidak disalahartikan sebagai bank verification.
-
-### US-05 — Void sebelum settled
-
-Sebagai kasir, aku ingin membatalkan transaksi provisional yang salah, tetapi tidak boleh mengubah transaksi yang sudah diterima backend.
-
-## Merchant Admin
-
-### US-06 — Kelola tim kasir
-
-Sebagai Admin, aku ingin membuat Operator/Admin, mengubah nama/role, reset PIN, dan deactivate account dalam merchant sendiri. Sistem harus mencegah self-demotion/deactivation dan menjaga minimal satu active Admin.
-
-### US-07 — Kendalikan device
-
-Sebagai Admin, aku ingin melihat dan me-revoke device merchant. Revocation harus menginvalidasi related sessions tanpa menghapus queued data lokal.
-
-### US-08 — Kelola catalog dan harga
-
-Sebagai Admin, aku ingin membuat, edit, archive, dan restore product. SKU harus unik per merchant; stock tidak boleh diedit lewat catalog screen; historical sale tetap memakai snapshot lama.
-
-### US-09 — Koreksi tanpa rewrite history
-
-Sebagai Admin, aku ingin mencatat payment correction dan resolve inventory discrepancy dengan reason/note supaya original event tetap immutable dan audit-able.
+- Sebagai Entry, aku bisa mengelola nama, SKU, kategori, harga, image, dan archive product.
+- Aku bisa menyesuaikan stock dengan reason dan melihat history adjustment.
+- Perubahan catalog tidak mengubah historical transaction snapshot.
 
 ## Owner
 
-### US-10 — Laporan tanpa mengganggu kasir
+- Sebagai Owner, aku bisa membuat/deactivate Entry/Operator dan me-revoke device merchant.
+- Aku bisa melihat sync conflict/failure, retry failure yang eligible, lalu confirm atau void conflict.
+- Aku membuka reconciliation hanya ketika payment yang sudah verified dicurigai salah.
+- Jika valid, aku menutup case tanpa mengubah transaction; jika invalid, sistem membuat payment
+  failed dan append-only void/correction secara atomik.
+- Aku melihat sales dashboard beserta `data_as_of` dan projection lag agar tahu freshness datanya.
 
-Sebagai Owner, aku ingin melihat sales, AOV, daily series, dan top product beserta waktu freshness
-supaya keputusan bisnis tidak membebani settlement path.
-
-### US-11 — Insight yang jujur
-
-Sebagai Owner, aku ingin generate insight secara async dan tahu apakah hasilnya berasal dari external
-AI atau local analytics, termasuk status queued/failed.
-
-## Sistem
-
-### US-12 — Lost response yang aman
-
-Sebagai sistem, ketika backend sudah commit tetapi response hilang, retry ID/payload yang sama harus menghasilkan `ALREADY_PROCESSED`, bukan row baru.
-
-### US-13 — Partial batch
-
-Sebagai sistem, satu candidate yang invalid tidak boleh menggagalkan candidate lain dalam batch, dan response order harus mengikuti request order.
-
-### US-14 — Offline lease
-
-Sebagai sistem, checkout boleh lanjut sampai 72 jam sejak successful online authentication. Sesudah lease habis, existing data tetap readable/queued tetapi sale baru menunggu re-authentication.
-
-## Use-case map
+## Lost-response flow
 
 ```mermaid
-flowchart LR
-  Kasir --> Login
-  Kasir --> Checkout["Offline checkout"]
-  Kasir --> Sync["Monitor sync"]
-  Kasir --> Void["Void provisional"]
-  Admin --> Users["Kelola user/device"]
-  Admin --> Catalog["Kelola catalog/pricing"]
-  Admin --> Correct["Correction"]
-  Admin --> Reconcile["Inventory reconciliation"]
-  Owner --> Dashboard["Sales dashboard"]
-  Owner --> Insight["Generate insight"]
-  Checkout --> IDB["Atomic local persistence"]
-  Sync --> API["Idempotent backend acceptance"]
-  API --> Worker["Eventual inventory worker"]
-  API --> Reporting["Eventual reporting projection"]
-  Reporting --> Dashboard
+sequenceDiagram
+  participant P as Operator PWA
+  participant A as API
+  participant Q as RabbitMQ
+  participant D as PostgreSQL
+  P->>A: POST sync (stable offline_uuid)
+  A->>D: Upsert receipt
+  A->>Q: Publish confirmed
+  A--xP: Response hilang
+  P->>A: Retry payload identik
+  A->>D: Reuse receipt
+  A-->>P: Same durable receipt
+  Q->>D: Idempotent settlement
 ```
-
-## Journey ringkas
-
-1. Device diaktivasi, operator login online, lalu session dan offline lease tersimpan.
-2. Catalog di-refresh. Ketika offline, kasir memakai last-known catalog.
-3. Confirm sale membuat provisional transaction dan outbox atomically.
-4. Scheduler mengirim due batch saat connectivity sehat.
-5. Accepted sale menjadi settled; worker menyelesaikan stock projection.
-6. Kalau ada exception, Admin menangani correction/discrepancy lewat append-only flow.

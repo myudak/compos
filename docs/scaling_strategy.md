@@ -1,97 +1,36 @@
 # Scaling Strategy
 
-COMPOS scale berdasarkan **access pattern**, bukan jumlah service. Operational settlement, Admin
-mutation, Owner reporting, dan background projection punya latency/consistency budget berbeda, tapi
-tetap hidup dalam modular monolith, satu PostgreSQL, satu API deployment, dan satu worker deployment.
+Scale per access pattern, not by drawing more services.
 
-## Workload matrix
+| Workload         | Shape                      | Consistency/budget response                      |
+| ---------------- | -------------------------- | ------------------------------------------------ |
+| Offline checkout | local interactive write    | IndexedDB, no network dependency                 |
+| Sync enqueue     | bursty write               | bounded batch, receipt insert, publisher confirm |
+| Settlement       | async ordered-ish consumer | prefetch/backpressure, transactional idempotency |
+| Entry mutation   | low-volume online write    | merchant-scoped strong DB commit                 |
+| Owner dashboard  | read-heavy aggregates      | projection tables, bounded date range            |
+| Reconciliation   | rare exception write       | serializable/transactional policy                |
 
-| Workload                | Pola akses                          | Consistency                  | Budget default                     |
-| ----------------------- | ----------------------------------- | ---------------------------- | ---------------------------------- |
-| Sync + immutable ledger | Burst write, retry, lost response   | Strong + idempotent          | pool 12, statement timeout 2 detik |
-| Admin                   | Low-volume mutation + audit         | Strong                       | pool 4, timeout 5 detik            |
-| Owner dashboard         | Date-range aggregate read           | Eventual, freshness terlihat | read pool 4, timeout 3 detik       |
-| Worker                  | Queue claim + idempotent projection | Eventual                     | pool 4, lane independen            |
-| External insight        | Slow/unreliable network call        | Async, fallback eksplisit    | timeout 15 detik, max 3 attempt    |
+## Current cost-aware topology
 
-Total connection budget per API replica:
+One NestJS deployable, one PostgreSQL, one RabbitMQ. Independent consumers run without making browser
+request wait. Connection pool, Rabbit prefetch, statement timeout, API rate limit, and query indexes
+are first tuning levers.
 
-```text
-API replicas × (operational + admin + reporting) + worker replicas × worker
-```
+Supported single-process profile memakai PostgreSQL pool 32, Rabbit prefetch 8, reporting batch 100, dan reporting concurrency 4. Background path memakai maksimal 12 koneksi bersamaan dan menyisakan 20 untuk HTTP/control reads. Connection budget minimum adalah `(replica × 32) + migration/operations + safety margin`; replica tidak boleh ditambah tanpa mengecek PostgreSQL `max_connections` dan pool wait.
 
-Default satu API + satu worker adalah `12 + 4 + 4 + 4 = 24` potential connections. Render sandbox
-mengecilkan API menjadi `8 + 2 + 2`, jadi total potential connections `16`. Pool dibuat terpisah;
-report yang lambat tidak boleh mengambil slot settlement.
+## Mixed-load gate
 
-## Write path dan read path
+CI smoke targets 50 merchants for 15–30 seconds. Explicit capacity profile targets 500 merchants for five minutes, satu sale per counter per 30 detik atau steady-state 16,67 sale/detik. Dalam profile ini, 20% counter juga menguji duplicate retry/catalog read, 10% Owner dashboard read, dan 5% Owner control read plus Entry stock mutation. Arrival diberi deterministic phase agar tidak menjadi synthetic thundering herd. Collect enqueue/settlement/dashboard p50/p95/p99, DB pool wait, Rabbit ready/unacked, DLQ, projection lag, dan duplicate/lost effects.
 
-```mermaid
-flowchart LR
-  Device["Operator PWA + local outbox"] --> Sync["Operational pool"]
-  Sync --> Ledger[("Immutable ledger")]
-  Ledger --> InventoryEvent["Inventory event"]
-  Ledger --> ReportingEvent["Reporting event"]
-  InventoryEvent --> InventoryLane["Inventory lane"]
-  ReportingEvent --> ReportingLane["Reporting lane"]
-  ReportingLane --> ReadModel[("Daily read models")]
-  Owner["Owner PWA"] --> ReportingPool["Reporting pool"]
-  ReportingPool --> ReadModel
-  Owner --> InsightJob["Insight job"]
-  InsightJob --> InsightLane["Insight lane"]
-  InsightLane --> Provider["External provider / local analytics"]
-```
+## Adoption triggers
 
-Reporting memakai `reporting_applied_transactions(merchant_id, transaction_id)` sebagai idempotency
-boundary. Replay event boleh terjadi, tetapi aggregate hanya berubah sekali. `VOIDED` transaction
-tercatat di ledger tetapi tidak masuk sales projection. Migration `003` membuat event backfill untuk
-settled data yang sudah ada sebelum read model diperkenalkan.
+- split consumer process when provider/CPU work impacts HTTP event loop despite queue isolation;
+- read replica when indexed projection reads saturate primary and measured replica staleness is okay;
+- Redis only when concrete shared cache/rate-limit need appears;
+- additional Rabbit cluster capacity when disk/network/queue lag remains bottleneck after prefetch and
+  consumer scaling;
+- microservice split only with independent ownership/deploy/SLO need and tested failure contract.
 
-## Worker lanes
-
-Satu process menjalankan tiga loop independen:
-
-- inventory: stock movement dan discrepancy;
-- reporting: daily sales dan product performance;
-- insight: claim job, extract aggregate features, provider/fallback, immutable result.
-
-External provider wait hanya menahan promise lane insight. Inventory dan reporting loop tetap maju.
-Manual generation dideduplicate oleh merchant + period window. Tanpa provider secret, hasil selalu
-deterministic dan diberi source `LOCAL_ANALYTICS`.
-
-## Rate dan data exposure
-
-- Reporting: 30 request/menit per authenticated session.
-- Insight generation: 2 request/hari per session, dengan DB deduplication per merchant/window.
-- Admin mutation: 60 request/menit per session.
-- Provider hanya menerima gross/net sales, transaction count, AOV, period, dan top products. Tidak
-  ada PIN, token, operator identity, device, customer, atau raw transaction.
-
-## Evidence dan target
-
-`pnpm test:load` membuat 50 isolated merchant selama 15 detik, menjalankan concurrent settlement,
-Admin read, Owner report, dan insight job, lalu membandingkan read model dengan canonical ledger.
-Hasil JSON berisi environment metadata, sample count, p95, lost/duplicate evidence, dan convergence.
-
-| Signal                         | Target supported environment |
-| ------------------------------ | ---------------------------- |
-| Local enqueue construction p95 | `< 500 ms`                   |
-| Backend settlement p95         | `< 750 ms`                   |
-| Owner dashboard p95            | `< 1.5 s`                    |
-| Lost/duplicate settlement      | `0`                          |
-| Reporting convergence          | Sama dengan canonical ledger |
-
-Capacity profile `pnpm test:load:500` menjalankan 500 merchant selama lima menit dan harus dijalankan
-eksplisit pada host yang dicatat spesifikasinya. Angka laptop bukan production capacity promise.
-
-## Trigger scale berikutnya
-
-| Tambahan infrastruktur | Baru dipertimbangkan ketika                                                            |
-| ---------------------- | -------------------------------------------------------------------------------------- |
-| Read replica           | Reporting p95/CPU melewati budget setelah index, query, read model, dan pool tuning    |
-| Broker                 | PostgreSQL outbox claim menjadi bottleneck terukur atau fan-out lintas banyak consumer |
-| Redis rate limiter     | API multi-replica dan process-local counter tidak cukup untuk abuse protection         |
-| Service split          | Team ownership/deployment isolation lebih bernilai daripada operational cost           |
-
-Relative cost dimulai dari `1 API + 1 worker + 1 PostgreSQL`. Replica/broker menambah biaya,
-operational surface, observability, backup, dan failure mode; keputusan harus memakai baseline nyata.
+No component is added merely to look “production-grade.” Every dependency needs owner, cost model,
+failure behavior, metrics, and recovery test.

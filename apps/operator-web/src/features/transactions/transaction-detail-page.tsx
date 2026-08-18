@@ -83,7 +83,7 @@ function lifecycleEvents(transaction: LocalTransaction): LifecycleEvent[] {
     },
     {
       label: "Dikonfirmasi kasir",
-      description: `${paymentLabels[transaction.paymentMethod]} · ${transaction.paymentVerificationType === "OPERATOR_ASSERTED" ? "verifikasi operator" : "verifikasi sistem"}`,
+      description: `${paymentLabels[transaction.paymentMethod]} · diverifikasi Operator`,
       done: true,
     },
     { label: "Disimpan ke local outbox", description: "Aman dari browser restart", done: true },

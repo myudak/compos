@@ -1,73 +1,77 @@
-# Arsitektur Sistem
+# System Architecture
 
-## Big picture
+## Runtime topology
 
 ```mermaid
 flowchart LR
-  Kasir["Kasir / Admin"] --> PWA["COMPOS Operator PWA"]
-  PWA --> IDB[("IndexedDB\ntransaction + local outbox")]
-  PWA -->|"HTTPS, saat online"| API["Fastify API"]
-  API --> PG[("PostgreSQL\nsource of truth")]
-  Worker["Inventory worker"] --> PG
-  PG --> Worker
-  API --> Obs["Logs + metrics"]
-  Worker --> Obs
+  Operator["Operator PWA / IndexedDB"]
+  Entry["Entry PWA"]
+  Owner["Owner PWA"]
+  Proxy["Same-origin Nginx"]
+  API["NestJS modular monolith"]
+  DB[("PostgreSQL canonical ledger")]
+  MQ[("RabbitMQ persistent queues")]
+  Consumer["In-process independent consumers"]
+
+  Operator --> Proxy
+  Entry --> Proxy
+  Owner --> Proxy
+  Proxy --> API
+  API --> DB
+  API --> MQ
+  MQ --> Consumer
+  Consumer --> DB
 ```
 
-COMPOS memakai local-first write path. UI tidak menunggu server untuk menyatakan checkout berhasil secara lokal; ia menunggu satu IndexedDB transaction yang menyimpan sale, outbox intent, product-stock projection, dan pembersihan draft. Backend kemudian menjadi source of truth setelah settlement.
+Local hot-reload memisahkan Vite dan API. Production-like Docker menyajikan semua browser app lewat
+Nginx di satu origin. Backend tetap satu NestJS deployable agar failure surface dan cost kecil; module
+boundaries dipakai sebelum service split.
 
-## Web boundary
+## Browser boundaries
 
-```text
-app/                         routing dan composition root
-features/                    UI + use case per business feature
-  auth/ checkout/ catalog/ sync/ transactions/
-  admin-users/ admin-catalog/ reconciliation/
-infrastructure/
-  api/                       validated transport
-  persistence/               Dexie repositories, session, device
-shared/ui/                   reusable presentation components
-shared/lib/                  kecil, domain-neutral
-```
+### Operator PWA
 
-Page hanya compose feature component/hook. Checkout construction berada di `confirmSale` application service, bukan event handler JSX. Zustand menyimpan ephemeral UI state; data durable masuk repository. Ordered draft persistence mencegah write lama menimpa state baru atau menghidupkan kembali cart yang sudah cleared.
+`app/` compose routes/shell, `features/` memiliki use case, `infrastructure/` memiliki API dan Dexie,
+`shared/` hanya UI/helper netral. Confirm sale adalah application service dengan IndexedDB transaction
+boundary. Service worker scope `/` tidak intercept `/entry/`, `/owner/`, `/api/`, `/health`, atau
+`/metrics`.
 
-## API boundary
+### Entry dan Owner PWA
 
-API disusun sebagai vertical modules: auth, devices, catalog, transactions, reconciliation, dan inventory. Route hanya melakukan authenticate, parse canonical contract, memanggil service, lalu serialize response. SQL dan row mapping tinggal di typed repository. Semua database transaction memakai satu `withTransaction` helper.
+Keduanya online-first, punya base dan service-worker scope sendiri. Cached shell boleh terbuka offline,
+tetapi mutation/report freshness tidak dijanjikan tanpa API. Wrong-role response memberi link ke app
+yang benar.
 
-```mermaid
-flowchart TD
-  Route["Route + auth + Zod parse"] --> Service["Application/domain service"]
-  Service --> Repo["Typed repository"]
-  Repo --> Mapper["snake_case row → camelCase DTO"]
-  Repo --> PG[(PostgreSQL)]
-  Contracts["@operator/contracts"] --> Route
-  Contracts --> Web["Validated web API client"]
-```
+## Backend modules
 
-## Checkout sampai inventory
+- auth/session/offline lease;
+- merchant users dan shared devices;
+- catalog dan inventory adjustment;
+- sync receipt, dispatcher, consumer, retry/DLQ;
+- immutable transaction, conflict, correction;
+- payment exception reconciliation;
+- transactional outbox dan reporting projection;
+- health, audit, OpenAPI.
 
-1. Device membuat UUIDv7 dan immutable item/payment snapshot.
-2. Satu IndexedDB transaction menyimpan sale + local outbox sebelum receipt tampil.
-3. Sync service mengirim due candidates dalam batch maksimal 25.
-4. API menerima setiap candidate secara independen; accepted transaction, items, event, dan backend outbox tersimpan dalam satu PostgreSQL transaction.
-5. Worker memproses inventory event secara idempotent.
-6. Kalau stock menjadi negatif, sistem membuka discrepancy untuk ditinjau Admin.
+Controller parse/authenticate/call service. Prisma service/repository memiliki persistence concern;
+authorization dan transition policy tinggal di application/domain service.
 
-Inventory sengaja eventual. Memaksa cross-device reservation ketika offline akan mengorbankan checkout availability yang menjadi jaminan utama produk.
+## Consistency boundaries
 
-## Boundary yang sengaja tidak dibuat
+| Boundary                   | Consistency                                   |
+| -------------------------- | --------------------------------------------- |
+| Local checkout             | Strong, single IndexedDB transaction          |
+| API receipt acceptance     | Strong DB receipt + confirmed durable publish |
+| Transaction settlement     | Strong PostgreSQL transaction, async dari UI  |
+| Inventory                  | Eventual; conflict explicit                   |
+| Reporting                  | Eventual idempotent projection                |
+| Catalog on offline counter | Last-known snapshot                           |
 
-Tidak ada generic shared package, ORM layer, RabbitMQ, atau domain framework. Abstraction baru harus menyelesaikan duplication nyata di minimal dua consumer, bukan sekadar terlihat enterprise.
+## Failure model
 
-## Owner intelligence dan workload isolation
-
-COMPOS Owner adalah PWA terpisah di port `5174` atau hosted path `/owner/`. Dashboard tidak menjalankan
-aggregate scan ke immutable ledger. Transaction acceptance menerbitkan inventory dan reporting event;
-reporting lane mengisi daily/product read models secara idempotent, lalu reporting pool membacanya.
-
-API memakai operational pool (12/2 detik), Admin pool (4/5 detik), dan reporting pool (4/3 detik).
-Worker punya pool 4 dan independent inventory, reporting, serta insight loops. External provider wait
-tidak menahan dua lane lain. Detail connection math dan scale trigger ada di
-[Scaling Strategy](scaling_strategy.md).
+- API unreachable: outbox stays local dan retry terjadwal.
+- HTTP response lost: stable key/payload retry me-reuse receipt.
+- Rabbit unavailable: API health degraded; receipt dispatcher/retry resumes later.
+- Consumer crash before commit: Rabbit redelivery; no business effect yet.
+- Consumer crash after commit before ACK: redelivery hits idempotency boundary.
+- Permanent message failure: DLQ marks receipt `FAILED`; Owner sees it.

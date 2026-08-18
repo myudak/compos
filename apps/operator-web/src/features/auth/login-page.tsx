@@ -1,12 +1,10 @@
 import { useState, type ComponentType, type FormEvent, type ReactNode } from "react"
 import {
   IconArrowRight,
-  IconBuildingStore,
   IconCloudCheck,
   IconCopy,
   IconDatabase,
   IconDeviceMobileCode,
-  IconKey,
   IconLock,
   IconRefresh,
   IconUser,
@@ -40,10 +38,11 @@ function LoginForm({
   device: DeviceIdentity
   onAuthenticated: (session: AuthSession) => void
 }) {
-  const [merchantCode, setMerchantCode] = useState("KEDAI-NUSA")
-  const [operatorCode, setOperatorCode] = useState("RANI")
-  const [pin, setPin] = useState("1234")
-  const [activationCode, setActivationCode] = useState("COMPOS-DEMO")
+  const [email, setEmail] = useState("operator@kedai-nusa.test")
+  const [password, setPassword] = useState("operator123")
+  const [deviceId, setDeviceId] = useState(
+    device.id.startsWith("DVC-") ? "KPOS-DEMO-DEVICE" : device.id,
+  )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -53,13 +52,11 @@ function LoginForm({
     setError("")
     try {
       const session = await activateAndLogin({
-        merchantCode,
-        operatorCode,
-        pin,
-        activationCode,
-        device,
+        email,
+        password,
+        device: { ...device, id: deviceId.trim() },
       })
-      await bootstrapLocalData(session, device)
+      await bootstrapLocalData(session)
       onAuthenticated(session)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Aktivasi gagal")
@@ -75,43 +72,35 @@ function LoginForm({
         className="w-full max-w-[500px] rounded-2xl border bg-card/72 p-5 shadow-2xl shadow-black/35 backdrop-blur-xl sm:p-8"
       >
         <MobileBrand />
-        <h2 className="text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">Aktifkan counter</h2>
+        <h2 className="text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">Masuk ke counter</h2>
         <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-          Aktivasi pertama butuh internet. Setelah masuk, katalog dan transaksi tetap tersedia saat
-          koneksi putus.
+          Login online membuka lease offline tujuh hari. Setelah masuk, katalog dan transaksi tetap
+          tersedia saat koneksi putus.
         </p>
 
         <div className="mt-7 grid gap-4">
-          <LoginField label="Kode merchant" icon={<IconBuildingStore />}>
+          <LoginField label="Email Operator" icon={<IconUser />}>
             <Input
-              value={merchantCode}
-              onChange={(event) => setMerchantCode(event.target.value.toUpperCase())}
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               className="h-11 bg-background/60 pr-10"
-              autoComplete="organization"
-            />
-          </LoginField>
-          <LoginField label="Kode operator" icon={<IconUser />}>
-            <Input
-              value={operatorCode}
-              onChange={(event) => setOperatorCode(event.target.value.toUpperCase())}
-              className="h-11 bg-background/60 pr-10"
+              type="email"
               autoComplete="username"
             />
           </LoginField>
-          <LoginField label="PIN operator" icon={<IconLock />}>
+          <LoginField label="Password" icon={<IconLock />}>
             <Input
-              value={pin}
-              onChange={(event) => setPin(event.target.value.replace(/\D/g, ""))}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
               className="h-11 bg-background/60 pr-10"
               type="password"
-              inputMode="numeric"
               autoComplete="current-password"
             />
           </LoginField>
-          <LoginField label="Kode aktivasi device" icon={<IconKey />}>
+          <LoginField label="Device ID counter" icon={<IconDeviceMobileCode />}>
             <Input
-              value={activationCode}
-              onChange={(event) => setActivationCode(event.target.value.toUpperCase())}
+              value={deviceId}
+              onChange={(event) => setDeviceId(event.target.value)}
               className="h-11 bg-background/60 pr-10"
               autoComplete="off"
             />
@@ -124,12 +113,12 @@ function LoginForm({
           </div>
         )}
         <Button type="submit" size="lg" className="mt-6 h-12 w-full" disabled={loading}>
-          {loading ? "Mengaktifkan perangkat…" : "Aktifkan & masuk"}
+          {loading ? "Memeriksa sesi…" : "Masuk"}
           <IconArrowRight />
         </Button>
-        <DeviceIdentityCard deviceId={device.id} />
+        <DeviceIdentityCard deviceId={deviceId} />
         <p className="mt-6 text-center text-[10px] leading-5 text-muted-foreground">
-          Demo: KEDAI-NUSA · RANI · PIN 1234 · COMPOS-DEMO
+          Demo: operator@kedai-nusa.test · operator123 · KPOS-DEMO-DEVICE
         </p>
       </form>
     </section>
@@ -196,8 +185,8 @@ function LoginField({
 function MobileBrand() {
   return (
     <div className="mb-8 flex items-center gap-3 lg:hidden">
-      <img src="/brand/compos-icon.png" alt="" className="size-10 rounded-lg object-cover" />
-      <span className="text-sm font-semibold tracking-[0.12em]">COMPOS</span>
+      <img src="/brand/kpos-icon.png" alt="" className="size-10 rounded-lg object-cover" />
+      <span className="text-sm font-semibold tracking-[0.12em]">K-POS</span>
     </div>
   )
 }
@@ -212,8 +201,8 @@ function LoginHero() {
   return (
     <section className="relative hidden min-w-0 flex-col justify-between gap-8 p-8 lg:flex xl:p-12">
       <div className="flex items-center gap-3">
-        <img src="/brand/compos-icon.png" alt="" className="size-10 rounded-lg object-cover" />
-        <span className="text-base font-semibold tracking-[0.12em]">COMPOS</span>
+        <img src="/brand/kpos-icon.png" alt="" className="size-10 rounded-lg object-cover" />
+        <span className="text-base font-semibold tracking-[0.12em]">K-POS</span>
       </div>
 
       <div className="max-w-5xl">
@@ -224,16 +213,16 @@ function LoginHero() {
           <span className="text-primary">.</span>
         </h1>
         <p className="mt-5 max-w-2xl text-sm leading-6 text-muted-foreground xl:text-base xl:leading-7">
-          COMPOS menyimpan transaksi ke perangkat saat offline, lalu mengirimkannya otomatis ketika
+          K-POS menyimpan transaksi ke perangkat saat offline, lalu mengirimkannya otomatis ketika
           koneksi kembali tersedia.
         </p>
 
-        <div className="mt-8 overflow-hidden rounded-2xl border bg-card/35 shadow-2xl shadow-black/20">
-          <img
-            src="/brand/compos-login-flow.png"
-            alt="Alur transaksi dari kasir ke outbox lokal lalu tersinkron ke backend"
-            className="aspect-[2.6/1] w-full object-cover"
-          />
+        <div className="mt-8 grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-3 rounded-2xl border bg-card/35 p-6 shadow-2xl shadow-black/20">
+          <FlowStep label="Checkout" detail="Simpan lokal" />
+          <IconArrowRight className="size-5 text-primary" />
+          <FlowStep label="Outbox" detail="Queue durable" />
+          <IconArrowRight className="size-5 text-primary" />
+          <FlowStep label="Ledger" detail="Exactly-once" />
         </div>
 
         <div className="mt-7 grid max-w-3xl grid-cols-3 divide-x divide-border">
@@ -250,5 +239,14 @@ function LoginHero() {
         Siap dipakai di toko, bazar, dan pop-up store.
       </p>
     </section>
+  )
+}
+
+function FlowStep({ label, detail }: { label: string; detail: string }) {
+  return (
+    <div className="rounded-xl border bg-background/55 p-4">
+      <div className="text-sm font-semibold">{label}</div>
+      <div className="mt-1 text-xs text-muted-foreground">{detail}</div>
+    </div>
   )
 }

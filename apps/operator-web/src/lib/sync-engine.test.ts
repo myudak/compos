@@ -18,9 +18,9 @@ describe("sync retry policy", () => {
     expect(calculateBackoffMs(30, () => 1)).toBe(5 * 60_000)
   })
 
-  it("does not increment retry count after a successful acceptance", () => {
+  it("does not increment retry count after a successful settlement", () => {
     const transition = transitionForResult(
-      { transactionId: "tx", status: "ACCEPTED", settlementStatus: "SETTLED" },
+      { transactionId: "tx", status: "SYNCED" },
       3,
       Date.UTC(2026, 7, 15),
     )

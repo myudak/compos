@@ -12,6 +12,7 @@ const product: Product = {
   category: "Kopi",
   price: 22_000,
   stock: 10,
+  catalogVersion: 1,
   lowStockThreshold: 5,
   accent: "#0891b2",
   active: true,

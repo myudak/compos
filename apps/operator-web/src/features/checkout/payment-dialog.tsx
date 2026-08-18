@@ -99,7 +99,7 @@ export function PaymentDialog(props: PaymentDialogProps) {
 const paymentOptions = [
   ["CASH", "Tunai", IconCash],
   ["STATIC_QRIS", "QRIS", IconDeviceMobile],
-  ["TRANSFER", "Transfer", IconReceipt2],
+  ["BANK_TRANSFER", "Transfer", IconReceipt2],
 ] as const
 
 function CashPayment({

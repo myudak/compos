@@ -1,68 +1,52 @@
 # Operations Runbook
 
-## Health dan signals
+## Fast checks
 
 ```bash
-curl http://localhost:3001/health
-curl -H "Accept: text/plain" http://localhost:3001/metrics
+curl http://localhost:8080/health
+curl http://localhost:8080/metrics
+docker compose ps
+docker compose logs --tail 200 api rabbitmq postgres
 ```
 
-Untuk hosted same-origin demo, gunakan URL web service yang sama:
+Health is `healthy` when DB/Rabbit are reachable, `degraded` when optional async dependency is down,
+and unhealthy when canonical DB/write path cannot operate.
 
-```bash
-curl https://your-compos-host/health
-curl -H "Accept: text/plain" https://your-compos-host/metrics
-```
+## Rabbit unavailable
 
-Kalau `/` sehat tetapi `/health` gagal, browser mungkin masih menampilkan cached PWA. Treat API dan
-database health sebagai source of truth untuk kemampuan sync; jangan meminta kasir clear IndexedDB.
+Expected: checkout remains local, REST auth/catalog/reporting stays available, sync enqueue may return
+retryable 503, receipt dispatcher resumes after broker recovery. Do not clear browser IndexedDB or
+generate replacement offline UUIDs.
 
-Pantau API error/latency, sync outcome, database transaction latency, backend outbox pending/lag, open discrepancy, auth failure, dan worker retry. Structured log boleh membawa request, batch, merchant, device, transaction, result, dan latency ID—tetapi tidak boleh PIN atau bearer token.
+1. Check Rabbit container/node/disk alarm and network/DNS.
+2. Restore broker; verify durable exchanges/queues/retry/DLQ declared.
+3. Watch unpublished receipt count and consumer lag return to zero.
+4. Verify duplicate count remains zero and sample receipt reaches terminal.
 
-## Incident playbooks
+## DLQ/failing receipt
 
-### API atau database unavailable
+Owner sees terminal failures. Inspect classification and payload/request ID. Retry only if failure is
+marked retryable and root cause is fixed. Permanent validation or payload-hash mismatch must not be
+forced through.
 
-1. Cek health, database reachability, recent deploy, dan connection saturation.
-2. Biarkan COMPOS Operator bekerja offline; jangan minta kasir clear browser data atau logout.
-3. Pulihkan service, lalu pantau bounded queue drain dan duplicate outcome ratio.
-4. Escalate kalau oldest outbox age terus naik setelah recovery.
+## Stock conflict
 
-### Worker lag
+Review product, snapshot, requested quantity, and physical stock. Confirm if merchant accepts negative
+stock/discrepancy; otherwise void. Both actions are audit events. Never edit canonical transaction row.
 
-1. Cek `backend_outbox_pending` dan `outbox_lag_seconds`.
-2. Inspect `last_error`, event type coverage, lock, dan database capacity.
-3. Restart/scale worker dengan aman; processed/movement uniqueness membuat replay idempotent.
-4. Jangan mark event processed secara manual sebelum business effect terverifikasi.
+## Payment exception
 
-### Duplicate atau payload conflict
+Open reconciliation only with a reason/evidence note. Valid closes without transaction mutation.
+Invalid resolution must atomically create payment `FAILED`, append-only correction, effective void,
+and reporting reversal. Escalate if any part is missing.
 
-Query merchant + transaction ID lalu compare payload hash dan events. `ALREADY_PROCESSED` sehat setelah lost response. `ID_REUSE_PAYLOAD_MISMATCH` berarti client identity bug atau altered retry; histori tidak boleh dioverwrite.
+## Reporting lag
 
-### Device/account compromise
+Compare `data_as_of`, projection queue depth, backend outbox age, and canonical ledger count. Replay
+projection idempotently; do not hand-edit aggregate rows. Timezone is merchant timezone.
 
-Admin me-revoke device atau deactivate/reset operator. Pastikan `auth_sessions.revoked_at` terisi. Untuk exposure luas, rotate activation/JWT secret. Local queued data masih berada di device, jadi physical-device policy tetap dibutuhkan.
+## Backup/restore
 
-### Negative inventory
-
-Pastikan worker replay selesai dan movement uniqueness benar. Setelah physical count, Admin resolve discrepancy dengan note. Jangan edit stock dari catalog management.
-
-## Backup expectations
-
-Managed PostgreSQL membutuhkan daily backup + point-in-time recovery yang encrypted dan diuji restore minimal per kuartal. Local PWA data adalah operational resilience, bukan system backup. Tetapkan retention audit/transaction sebelum production.
-
-Render one-click demo tidak memenuhi expectation tersebut: free database tidak punya backup dan
-kedaluwarsa setelah 30 hari. Hapus seluruh Render project setelah evaluasi agar paid worker berhenti.
-Urutan deploy, smoke test, troubleshooting, dan teardown ada di
-[Render Demo Deployment](render_demo_deployment.md).
-
-## Owner/reporting incident
-
-1. Cek `reporting_lane_queue_depth`, `insight_lane_queue_depth`, pool waiting, dan
-   `projectionLagSeconds`.
-2. Kalau settlement sehat tetapi dashboard stale, fokus ke reporting lane; jangan scale operational
-   pool secara refleks.
-3. Provider fallback naik berarti external dependency bermasalah. Local insight tetap valid dan wajib
-   tampil sebagai `LOCAL_ANALYTICS`.
-4. Replay reporting event aman selama `reporting_applied_transactions` utuh. Jangan edit aggregate
-   manual sebelum ledger-to-projection reconciliation dijalankan.
+Production requires automatic PostgreSQL backup + PITR. Quarterly restore drill verifies schema,
+transaction/payment/correction links, outbox replay, and dashboard convergence. Rabbit is transport;
+unpublished durable receipts/backend outbox in PostgreSQL remain recovery anchors.

@@ -1,69 +1,62 @@
-# Desain Database
+# Database Design
 
-COMPOS punya dua persistence boundary: IndexedDB di device untuk operational continuity, dan PostgreSQL sebagai backend source of truth.
-
-## Local IndexedDB
-
-Database browser `operator-pos-v3` menyimpan:
-
-| Store                  | Fungsi                                                                     |
-| ---------------------- | -------------------------------------------------------------------------- |
-| `products`             | Last-known catalog dan local stock projection.                             |
-| `drafts`               | Cart aktif yang disimpan berurutan.                                        |
-| `transactions`         | Provisional/settled transaction beserta immutable snapshot.                |
-| `outbox`               | Sync intent, state, retry count, due time, dan last error.                 |
-| session/device storage | Online token, offline lease, merchant/operator, dan installation identity. |
-
-Checkout melakukan update transaction, outbox, product projection, dan draft dalam satu Dexie transaction. Demo fixtures hanya boleh masuk ketika `VITE_DEMO_MODE=true`.
-
-## PostgreSQL core
+## PostgreSQL source of truth
 
 ```mermaid
 erDiagram
-  MERCHANTS ||--o{ OPERATORS : memiliki
-  MERCHANTS ||--o{ DEVICES : memiliki
-  OPERATORS ||--o{ AUTH_SESSIONS : membuka
-  MERCHANTS ||--o{ PRODUCTS : menjual
-  MERCHANTS ||--o{ TRANSACTIONS : menerima
-  TRANSACTIONS ||--|{ TRANSACTION_ITEMS : berisi
-  TRANSACTIONS ||--o{ TRANSACTION_EVENTS : mencatat
-  TRANSACTIONS ||--o{ PAYMENT_CORRECTIONS : dikoreksi
-  PRODUCTS ||--o{ INVENTORY_MOVEMENTS : bergerak
-  PRODUCTS ||--o{ INVENTORY_DISCREPANCIES : memiliki
-  MERCHANTS ||--o{ ADMIN_AUDIT_EVENTS : diaudit
-  TRANSACTIONS ||--o{ BACKEND_OUTBOX : menerbitkan
+  Merchant ||--o{ User : has
+  Merchant ||--o{ Device : shares
+  Merchant ||--o{ Product : catalogs
+  Device ||--o{ SyncReceipt : submits
+  SyncReceipt ||--o| Transaction : settles
+  Transaction ||--|{ TransactionItem : snapshots
+  Transaction ||--|| Payment : records
+  Payment ||--o{ PaymentReconciliation : investigates
+  Transaction ||--o{ TransactionCorrection : corrects
+  Transaction ||--o{ BackendOutbox : emits
+  BackendOutbox ||--o| ReportingAppliedTransaction : projects
+  Merchant ||--o{ MerchantDailySales : reports
+  Merchant ||--o{ MerchantProductDailySales : reports
 ```
 
-Tabel utama:
+## Integrity rules
 
-- `merchants`, `operators`, `devices`, `auth_sessions` untuk tenant dan access control.
-- `products` untuk catalog, pricing, archive state, threshold, dan current stock projection.
-- `transactions`, `transaction_items`, `transaction_events` untuk immutable accepted sales.
-- `payment_corrections` untuk append-only correction tanpa rewrite transaksi asli.
-- `backend_outbox`, `inventory_movements`, `inventory_discrepancies` untuk reliable eventual processing.
-- `admin_audit_events` untuk perubahan account, permission, device, catalog, price, correction, dan discrepancy—tanpa PIN.
+- role enum only `OWNER | ENTRY | OPERATOR`;
+- one active primary Owner per merchant via database constraint/index;
+- unique user email and merchant-scoped product SKU;
+- unique `(device_id, offline_uuid)` sync boundary plus payload hash;
+- transaction original row never updated for void/correction semantics;
+- transaction item stores product ID, name, SKU, unit price, catalog version snapshot;
+- only one OPEN payment reconciliation per payment;
+- invalid reconciliation and correction share one database transaction;
+- event/projector uniqueness prevents duplicate stock/reporting effect.
 
-## Constraint penting
+## Payment model
 
-- `(merchant_id, transaction_id)` unik: business effect maksimal sekali per merchant.
-- `(merchant_id, sku)` dan `(merchant_id, operator_code)` unik.
-- Satu open inventory discrepancy per merchant/product.
-- Inventory movement unik per source event/product agar worker replay aman.
-- Query tenant selalu diawali merchant scope; code tidak memakai `SELECT *`.
+```prisma
+enum PaymentStatus {
+  VERIFIED
+  FAILED
+}
 
-## Immutability dan snapshot
+enum ReconciliationStatus {
+  OPEN
+  RESOLVED_VALID
+  RESOLVED_INVALID
+}
+```
 
-Accepted transaction tidak di-update. Nama produk, SKU, unit price, quantity, subtotal, payment method, dan totals disimpan sebagai snapshot. Karena itu perubahan harga atau archive setelah sale tidak merusak histori. Correction adalah record baru dengan actor, reason, dan timestamp.
+Reconciliation stores payment/transaction reference, reason/evidence note, opener/resolver, outcome,
+timestamps, and related correction when invalid. Tidak ada global `PENDING` payment queue.
 
-Clean baseline/reset hanya kebijakan prototype. Saat sudah menyimpan customer data, schema change harus memakai additive, reviewed, reversible migrations.
+## IndexedDB Operator
 
-## Reporting dan insight schema
+Tables store active catalog snapshot, durable draft, local transactions, local receipt metadata,
+delivery outbox, session/offline lease, dan stable device identity. Schema version baru harus punya
+explicit migration/recovery test. Logout tidak menghapus ledger/outbox/device.
 
-- `reporting_applied_transactions`: transaction identity yang sudah diproyeksikan; replay-safe.
-- `merchant_daily_sales` dan `merchant_product_daily_sales`: read model per merchant/business date.
-- `insight_jobs`: queue state, attempt, due time, requester, dan deduplication period.
-- `business_insights`: immutable title/summary/recommendations dengan source yang jujur.
-- `merchants.timezone`: menentukan business-date boundary; default `Asia/Jakarta`.
+## Migration policy
 
-Migration `002` additive menambah schema dan role Owner. Migration `003` membuat reporting event
-untuk confirmed transaction lama tanpa reset database.
+Prototype sekarang memakai clean baseline karena belum ada customer production. Setelah live data
+ada, semua schema change wajib additive, reviewed, rollback-aware, dan diuji terhadap backup copy.
+Reset command harus menolak database non-local/non-test.

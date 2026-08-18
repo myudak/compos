@@ -1,43 +1,19 @@
 # Traceability Matrix
 
-Matrix ini menghubungkan product requirement ke implementation boundary, API, automated evidence, dan langkah demo. Tujuannya biar klaim produk gampang diverifikasi, bukan cuma terdengar meyakinkan.
+| Requirement               | Implementation/API                               | Automated evidence                        | Demo                                 |
+| ------------------------- | ------------------------------------------------ | ----------------------------------------- | ------------------------------------ |
+| FR-01–05 auth/user/device | Nest auth/users/devices, sessions, offline lease | backend role/tenant/device integration    | login 3 role, revoke device          |
+| FR-06–07 local checkout   | Operator checkout service + Dexie repositories   | fake IndexedDB and reload tests           | offline pay + reload                 |
+| FR-08–10 durable sync     | `/api/v1/sync`, receipts, Rabbit retry/DLQ       | PostgreSQL/Rabbit E2E + lost response     | queue/replay/degraded broker         |
+| FR-11 stale catalog       | immutable item/catalog snapshot                  | backend archived-product and browser flow | Entry archives, Operator sells cache |
+| FR-12 conflict            | receipt conflict + Owner resolution              | conflict confirm/void integration/E2E     | Owner sync desk                      |
+| FR-13 catalog/stock       | Entry product and stock endpoints/PWA            | role/tenant + browser scenario            | edit/archive/adjust                  |
+| FR-14 payment verified    | settlement payment policy                        | payment policy/unit + integration         | inspect normal sale                  |
+| FR-15–16 exception case   | payments reconciliation endpoint/tables          | valid/invalid atomic flow                 | invalid reconciliation               |
+| FR-17 audit               | merchant audit events + Owner page               | mutation audit assertions                 | audit trail                          |
+| FR-18 reporting           | backend outbox + daily/product projections       | replay/timezone/convergence tests         | freshness dashboard                  |
+| FR-19 tenant isolation    | guards + merchant predicates                     | cross-merchant integration                | API 403/not-found proof              |
+| FR-20 app isolation       | role gate + separate PWA scopes                  | Playwright role isolation                 | wrong-role login                     |
 
-| Req                      | Implementation / API                                                    | Automated evidence                                 | Demo evidence                                        |
-| ------------------------ | ----------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------- |
-| FR-01 Auth & user admin  | Auth service; `/v1/auth/login`, `/logout`; `/v1/admin/operators`        | Session/login/logout, last-admin, permission tests | Login sebagai Kasir/Admin; create/deactivate cashier |
-| FR-02 Device lifecycle   | Persistent device identity; `/v1/devices/register`; `/v1/admin/devices` | Registration dan revocation integration            | Revoke device lalu tunjukkan re-auth requirement     |
-| FR-03 Offline checkout   | `confirmSale`; atomic Dexie repository                                  | Atomic checkout + offline Playwright               | Putuskan koneksi lalu confirm sale                   |
-| FR-04 Restart recovery   | IndexedDB repositories dan ordered draft persistence                    | Reload/restart integration + E2E                   | Reload; sale/queue tetap ada                         |
-| FR-05 Reconnect sync     | Scheduler, health probe, due query, single-flight service               | Reconnect E2E                                      | Klik Hubungkan; queue drain                          |
-| FR-06 Idempotency        | Payload hash; merchant/transaction uniqueness; sync API                 | Lost-response + ID mismatch integration/E2E        | Tunjukkan retry `ALREADY_PROCESSED`                  |
-| FR-07 Visible status     | Receipt, transaction list/detail, connection status                     | Component/journey assertions                       | Bandingkan provisional vs settled                    |
-| FR-08 Multi-device       | Installation ID dan merchant-scoped acceptance                          | Two-context Playwright                             | Jelaskan dua device satu merchant                    |
-| FR-09 Payment semantics  | Payment policies dan snapshot contract                                  | Payment unit tests                                 | Cash lalu Static QRIS/Transfer                       |
-| FR-10 Lifecycle/void     | Transaction/outbox state transition policy                              | Restart, void, settled immutability tests          | Void provisional; settled tidak editable             |
-| FR-11 Correction         | `/v1/admin/transactions/:id/corrections`                                | Correction + immutability integration              | Tambahkan correction dan tunjukkan original          |
-| FR-12 Eventual inventory | PostgreSQL backend outbox + worker                                      | Worker replay/idempotency integration              | Tunjukkan stock setelah settlement                   |
-| FR-13 Discrepancy        | Inventory module dan Admin resolution API                               | Negative stock/replay/resolution tests             | Resolve physical-count discrepancy                   |
-| FR-14 Partial batch      | Batch max 25; ordered per-item result                                   | Partial rejection integration/E2E                  | Tunjukkan mixed result evidence                      |
-| FR-15 Catalog admin      | `/v1/admin/products` create/patch/archive/restore                       | SKU/price/archive/tenant tests                     | Edit harga dan archive product                       |
-| FR-16 Stale catalog      | Bootstrap refresh + local catalog replacement                           | Catalog replacement + reconnect E2E                | Offline pakai catalog lama, lalu refresh             |
-| FR-17 Session lease      | JWT `jti`, server sessions, local 72h lease                             | Expiry/revocation/unit/E2E                         | Expired lease: data ada, checkout blocked            |
-| FR-18 Isolation & audit  | Merchant-scoped repositories; audit events                              | Cross-merchant and audit integration               | Buka Admin audit context                             |
-| FR-19 Owner boundary     | Separate PWA; Owner-only routes; provisioning CLI                       | Role contract + PostgreSQL access integration      | Login Owner; counter endpoint menghasilkan 403       |
-| FR-20 Sales dashboard    | Daily/product read models; reporting pool                               | Projection convergence + hosted fallback tests     | Settle sale lalu lihat freshness dan top product     |
-| FR-21 Async insight      | Insight queue; provider validation; local fallback                      | Queued→completed integration + load harness        | Generate lalu cek source `LOCAL_ANALYTICS`           |
-| FR-22 Reporting replay   | `reporting_applied_transactions`; reporting lane                        | Replay-safe integration; ledger comparison         | Replay event tanpa aggregate ganda                   |
-
-## NFR evidence
-
-| NFR                    | Evidence                                                                                        |
-| ---------------------- | ----------------------------------------------------------------------------------------------- |
-| Durability/correctness | Atomic persistence, lost-response, payload mismatch, restart recovery tests.                    |
-| Security/isolation     | bcrypt, server-side `jti`, RBAC, merchant-scoped integration tests, log redaction policy.       |
-| Maintainability        | Workspace boundaries, canonical contracts, strict typecheck/lint, source-size rules.            |
-| Observability          | `/health`, Prometheus-format `/metrics`, request/batch/transaction structured logs.             |
-| Recoverability         | Guarded reset untuk prototype; deployment/runbook mendefinisikan backup/PITR dan restore drill. |
-| Scaling/isolation      | Pool budgets, lane metrics, 50-merchant mixed-load p95 dan convergence evidence.                |
-
-## Cara menjaga matrix tetap berguna
-
-Setiap requirement baru harus punya ID, owner implementation, minimal satu test atau alasan kenapa manual, dan demo/operational evidence. Jangan menandai requirement selesai kalau matrix cuma menunjuk nama file tanpa behavior yang bisa diverifikasi.
+OpenAPI snapshot maps public endpoint schema to frontend client. `pnpm openapi:check` prevents silent
+backend/client drift.

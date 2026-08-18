@@ -1,46 +1,30 @@
-# Panduan Demo
+# Demo Guide
 
-## Persiapan
+Start `pnpm stack:up`, then use production-like origin `http://localhost:8080`.
 
-```bash
-pnpm install
-pnpm db:up
-pnpm db:reset
-pnpm dev
-```
+| Role     | Credentials                                                     |
+| -------- | --------------------------------------------------------------- |
+| Operator | `operator@kedai-nusa.test` / `operator123` / `KPOS-DEMO-DEVICE` |
+| Entry    | `entry@kedai-nusa.test` / `entry123`                            |
+| Owner    | `owner@kedai-nusa.test` / `owner123`                            |
 
-Buka `http://localhost:5173` di clean browser profile. Kasir: `KEDAI-NUSA / RANI / 1234`; Admin: `KEDAI-NUSA / ADMIN / 9999`; activation code: `COMPOS-DEMO`.
+## 8-minute walkthrough
 
-## Alur presentasi 8–10 menit
+1. **Offline atomic checkout:** login Operator online, matikan browser network, add items dan bayar.
+   Tunjukkan receipt `PROVISIONAL`, reload, sale masih ada.
+2. **Durable sync:** hidupkan network. Status bergerak `QUEUED` lalu `SETTLED`; tunjukkan receipt
+   canonical dan Rabbit Management activity.
+3. **Exactly-once:** replay request identik atau jalankan dropped-response E2E. Ledger tetap satu.
+4. **Entry staleness:** Entry archive/ubah product sementara Operator offline. Cached product masih bisa
+   dijual dengan snapshot lama dan backend tidak reprice history.
+5. **Stock conflict:** buat oversell, buka Owner sync desk, pilih confirm atau void.
+6. **Payment exception:** buka case untuk verified transfer, resolve invalid. Tunjukkan payment
+   `FAILED`, original transaction masih ada, effective status void.
+7. **Reporting:** tunggu projection lalu tunjukkan freshness dan totals converge.
+8. **Degraded broker:** stop Rabbit; `/health` degraded tetapi Owner login/REST tetap hidup dan local
+   checkout tidak hilang. Start Rabbit dan tunjukkan recovery.
 
-1. **Problem (45 detik):** koneksi UMKM tidak stabil, provisional vs settled, dan multi-device.
-2. **Architecture (60 detik):** buka [system diagram](system_architecture.md); jelaskan local commit, stable ID, PostgreSQL acceptance, dan worker.
-3. **Offline sale (90 detik):** login, klik **Coba offline**, tambah item, pilih Cash/QRIS, confirm. Tunjukkan provisional receipt dan pending outbox.
-4. **Durability (30 detik):** reload browser; transaction, cart/catalog, dan queue tetap ada.
-5. **Reconnect (60 detik):** klik **Hubungkan**; receipt menjadi settled dan queue berkurang.
-6. **Lost response (45 detik):** tunjukkan test/evidence bahwa commit pertama sukses, response hilang, retry menghasilkan `ALREADY_PROCESSED`.
-7. **Admin (90 detik):** masuk sebagai Admin; buat/deactivate cashier, edit harga, lalu soft-archive product.
-8. **Exception flow (60 detik):** tampilkan payment correction dan inventory discrepancy; original transaction tetap immutable.
-9. **Owner (60 detik):** buka `5174/owner/` dengan OWNER/7777, tunjukkan freshness, top product,
-   generate insight, dan label `LOCAL_ANALYTICS` saat provider secret kosong.
-10. **Evidence (45 detik):** tunjukkan `pnpm run ci`, mixed-load JSON, traceability, dan CI artifacts.
-11. **Trade-off (45 detik):** access-pattern pools/read model sebelum replica, PostgreSQL outbox
-    sebelum RabbitMQ, serta provider fallback yang tidak mengganggu settlement.
+## Demo principles
 
-## Command berguna
-
-```bash
-pnpm test:integration
-pnpm test:e2e
-pnpm test:load
-curl -H "Accept: text/plain" http://localhost:3001/metrics
-```
-
-## Kalau live demo bermasalah
-
-- Browser data memang durable; pakai profile baru untuk clean run.
-- Kalau port bentrok, stop dev process lama. Jangan asal clear production-like data.
-- Kalau fixture PostgreSQL berubah, jalankan guarded `pnpm db:reset`, lalu restart `pnpm dev`.
-- Siapkan screenshot, Playwright trace, dan integration output sebagai fallback evidence.
-
-Demo yang kuat bukan cuma happy path. Fokuskan narasi ke bukti bahwa sale tidak hilang, retry tidak menduplikasi transaksi, dan Admin tetap punya controlled recovery flow.
+Jangan menyebut enqueue sebagai settlement. Jangan clear browser data untuk “memperbaiki” queue.
+Tunjukkan failure/recovery evidence, bukan hanya happy path UI.

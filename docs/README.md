@@ -1,31 +1,31 @@
-# COMPOS Project Playbook
+# K-POS Product & Engineering Playbook
 
-Ini adalah sumber utama product dan engineering knowledge untuk COMPOS. Mulai dari [Project Overview](project_overview.md), lalu pilih topik sesuai kebutuhan. Bahasa utamanya Indonesia, sementara istilah teknis tetap memakai English saat itu lebih presisi dan natural.
+Dokumentasi ini Indonesian-first; istilah technical English dipakai kalau lebih presisi. Backend
+OpenAPI tetap normative untuk wire contract.
 
-| Mau cari apa?                | Dokumen                                                                                                                        |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Scope dan gambaran produk    | [Project Overview](project_overview.md) · [Product Principles](product_principles.md)                                          |
-| Aktor dan journey            | [User Stories](user_stories.md)                                                                                                |
-| Functional scope             | [Functional Requirements](functional_requirements.md)                                                                          |
-| Quality target               | [Non-Functional Requirements](non_functional_requirements.md)                                                                  |
-| Role dan authorization       | [Role & Permissions](role_permissions.md)                                                                                      |
-| Mapping requirement ke bukti | [Traceability Matrix](traceability_matrix.md)                                                                                  |
-| Arsitektur dan boundary      | [System Architecture](system_architecture.md)                                                                                  |
-| Scaling dan capacity         | [Scaling Strategy](scaling_strategy.md)                                                                                        |
-| Offline sync                 | [Sync Protocol](sync_protocol.md)                                                                                              |
-| Data model                   | [Database Design](database_design.md)                                                                                          |
-| Pilihan teknologi            | [Tech Stack](tech_stack.md)                                                                                                    |
-| Setup dan kontribusi         | [Development Guide](development_guide.md)                                                                                      |
-| Strategi verifikasi          | [Testing Strategy](testing_strategy.md)                                                                                        |
-| Product walkthrough          | [Demo Guide](demo_guide.md)                                                                                                    |
-| Deploy dan operasi           | [Deployment Plan](deployment_plan.md) · [Render Demo](render_demo_deployment.md) · [Operations Runbook](operations_runbook.md) |
-| Alasan keputusan arsitektur  | [ADR Index](adr/README.md)                                                                                                     |
+## Mulai di sini
 
-## Cara pakai playbook ini
+1. [Project overview](project_overview.md)
+2. [Product principles](product_principles.md)
+3. [Functional requirements](functional_requirements.md) dan
+   [non-functional requirements](non_functional_requirements.md)
+4. [Role permissions](role_permissions.md) dan [user stories](user_stories.md)
+5. [System architecture](system_architecture.md) dan [sync protocol](sync_protocol.md)
+6. [Database design](database_design.md) dan [tech stack](tech_stack.md)
+7. [Testing strategy](testing_strategy.md) dan [traceability](traceability_matrix.md)
+8. [Development guide](development_guide.md), [deployment](deployment_plan.md),
+   [runbook](operations_runbook.md), dan [demo](demo_guide.md)
+9. [Scaling strategy](scaling_strategy.md) dan [ADR index](adr/README.md)
 
-- Product reviewer: mulai dari overview, product principles, architecture, lalu demo guide.
-- Developer baru: baca development guide, contracts, database design, dan testing strategy.
-- Presenter: pakai traceability matrix buat menjawab “requirement ini dibuktikan di mana?”.
-- Operator insiden: buka operations runbook; jangan hapus browser data ketika queue belum settled.
+## Source precedence
 
-Kalau behavior code dan docs berbeda, anggap itu bug dokumentasi atau implementasi—bukan alasan untuk menebak. Update keduanya dalam perubahan yang sama.
+Kalau dokumen dan code berkontradiksi, resolve memakai urutan:
+
+1. project overview dan product principles;
+2. FRD/NFR;
+3. architecture dan user flow;
+4. backend generated OpenAPI;
+5. current implementation.
+
+Contradiction yang ditemukan harus diperbaiki di source lebih tinggi dan ditrace ke implementation,
+bukan disembunyikan dengan adapter UI.

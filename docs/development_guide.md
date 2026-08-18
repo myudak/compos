@@ -1,94 +1,56 @@
 # Development Guide
 
-## Setup lokal
+## Prerequisites
 
-Butuh Node.js 22+, pnpm 10, dan Docker Desktop/Compose.
+Node.js 22+, pnpm 10, npm, Docker Desktop/Compose. Clone frontend dan backend sebagai sibling:
+
+```text
+workspace/project_COMPPOS
+workspace/k-pos-be
+```
+
+## Production-like local stack
 
 ```bash
+cd project_COMPPOS
 pnpm install
-pnpm db:up
-pnpm db:reset
-pnpm dev
+pnpm stack:up
 ```
 
-`pnpm dev` menjalankan COMPOS Operator di `5173`, COMPOS Owner di `5174`, API di `3001`, dan worker.
-Reset menghapus schema `public` dan menolak database yang namanya bukan `operator_pos` atau
-`operator_pos_*`.
+Routes:
 
-## Environment variables
+- Operator `http://localhost:8080/`
+- Entry `http://localhost:8080/entry/`
+- Owner `http://localhost:8080/owner/`
+- health `http://localhost:8080/health`
+- Rabbit Management `http://localhost:15672` (`guest/guest`)
 
-| Variable                    | Default / fungsi                                                                             |
-| --------------------------- | -------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`              | `postgres://operator:operator@localhost:5432/operator_pos`                                   |
-| `JWT_SECRET`                | Local-only default; wajib secret nyata saat deploy.                                          |
-| `DEVICE_ACTIVATION_CODE`    | `COMPOS-DEMO`; ganti secara aman di luar demo.                                               |
-| `CORS_ORIGIN`               | Daftar web origin yang diizinkan, dipisahkan koma.                                           |
-| `PORT`, `HOST`, `LOG_LEVEL` | API runtime configuration.                                                                   |
-| `VITE_API_URL`              | Browser API base; local dev default `http://localhost:3001`, production default same-origin. |
-| `VITE_DEMO_MODE`            | Local fixture mode hanya saat eksplisit `true`.                                              |
-| `SERVE_WEB`                 | `false`; aktifkan untuk menyajikan production PWA lewat Fastify.                             |
-| `WEB_DIST_PATH`             | Optional override lokasi `operator-web/dist`; default di-resolve dari API module.            |
+`pnpm stack:down` stops containers without deleting volumes. Do not add `-v` unless local data
+destruction is intended and verified.
 
-## Hosted demo profile
+## Hot reload
 
-Render demo dan production-like local smoke memakai hasil build PWA pada origin Fastify yang sama.
-Development sehari-hari tetap memakai Vite dan API terpisah supaya HMR cepat.
+From backend: `npm install`, `npm run db:up`, `npm run db:migrate`, `npm run seed`, then
+`npm run start:dev`. From frontend: `pnpm dev`.
+
+Ports are Operator `5173`, Entry `5174`, Owner `5175`, API `3001`, PostgreSQL `5432`, Rabbit AMQP
+`5672`, Rabbit Management `15672`.
+
+## Contract workflow
 
 ```bash
-pnpm build
-SERVE_WEB=true pnpm start:hosted
+cd ../k-pos-be
+npm run openapi:generate
+cd ../project_COMPPOS
+Copy-Item ../k-pos-be/openapi.json packages/api-client/openapi.json
+pnpm openapi:generate
+pnpm openapi:check
 ```
 
-`start:hosted` menjalankan built migration runner sebelum built API. Jalankan built worker secara
-terpisah dengan `pnpm worker:hosted`. Kedua process boleh start bersamaan karena migration runner
-memakai PostgreSQL advisory lock.
+Review endpoint/schema diff and update runtime Zod/domain mappers. Generated types alone do not
+validate hostile runtime response.
 
-Detail resource, biaya, smoke test, dan teardown ada di
-[Render Demo Deployment](render_demo_deployment.md).
+## Database safety
 
-### Cloudflare Tunnel untuk `compos.myudak.com`
-
-Build lalu jalankan hosted profile dengan exact public origin:
-
-```powershell
-pnpm build
-$env:SERVE_WEB = "true"
-$env:CORS_ORIGIN = "https://compos.myudak.com"
-pnpm start:hosted
-```
-
-Jalankan worker melalui terminal terpisah dengan `pnpm worker:hosted`, lalu arahkan Cloudflare
-Tunnel hostname `compos.myudak.com` ke `http://localhost:3001`. Jangan arahkan tunnel ke Vite port
-`5173`: production build sengaja memakai same-origin `/v1`, sehingga tidak mengekspos localhost API
-ke browser pengunjung.
-
-## Workspace boundaries
-
-- `packages/contracts`: wire schemas dan DTO saja.
-- `apps/operator-web/features`: UI, query, hook, dan application service per feature.
-- `apps/operator-web/infrastructure`: API, Dexie, dan browser adapters.
-- `apps/api/modules`: vertical service, repository, dan mapper.
-- Route mengurus auth/parse/call/serialize; SQL tetap di repository.
-
-Feature page tidak boleh import persistence/API infrastructure langsung kecuali type-only model import. Durable state tidak boleh masuk Zustand. Demo seed juga tidak boleh bocor ke production path.
-
-## Quality workflow
-
-```bash
-pnpm format
-pnpm format:check
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm test:integration
-pnpm build
-pnpm test:e2e
-```
-
-Jalankan seluruh gate berurutan dengan `pnpm run ci`. Gunakan bentuk `pnpm run` karena `ci` adalah
-built-in pnpm command, bukan shorthand yang otomatis menjalankan package script.
-
-`pnpm lint` memakai Oxlint dengan native type-aware rules dari `oxlint-tsgolint`; warning tetap
-memblokir CI. `pnpm format` dan `pnpm format:check` memakai Oxfmt sebagai canonical formatter.
-
-Buat commit kecil yang tetap buildable per subsystem. Jangan commit `.agents`, `.claude`, secret, database dump, atau local tool config ke product history.
+Backend `npm run db:reset` has a local/test name guard. Prefer migrations. Never point reset commands
+at managed/staging/production URLs. Existing Docker named volumes are persistent by default.

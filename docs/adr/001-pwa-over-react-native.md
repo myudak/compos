@@ -1,19 +1,12 @@
-# ADR-001 — Responsive PWA Sebelum React Native
+# ADR-001 — Scoped PWA sebelum React Native
 
-**Status:** Diterima
+**Status:** Accepted
 
-## Konteks
+K-POS needs desktop/tablet/mobile reach, offline storage, and separate role experiences. Current scope
+does not require native Bluetooth/NFC/printer SDK or reliable background execution.
 
-COMPOS harus cepat tersedia di desktop, tablet, dan mobile, mampu menyimpan data offline, dan mudah didemokan. Belum ada kebutuhan wajib untuk native printer, Bluetooth, NFC, atau background execution yang kuat.
+**Decision:** build three React/Vite PWAs with scopes `/`, `/entry/`, `/owner/`. Operator owns Dexie
+offline checkout; Entry/Owner are online-first with cacheable shell.
 
-## Keputusan
-
-Bangun COMPOS Operator sebagai installable React PWA. Jangan membuat React Native app paralel sebelum ada kebutuhan native yang terukur.
-
-## Kenapa begini?
-
-Satu codebase memberi delivery dan QA surface yang lebih kecil. IndexedDB cukup untuk durable queue dan Vite PWA mudah didistribusikan tanpa app-store flow.
-
-## Konsekuensi dan revisit trigger
-
-Background sync mengikuti batas browser dan hardware integration lebih terbatas. Evaluasi React Native atau native wrapper kalau printer/Bluetooth/NFC, OS kiosk control, atau guaranteed background processing sudah menjadi requirement nyata.
+**Consequence:** one web delivery model and faster updates. Re-evaluate React Native only with measured
+browser capability gap.

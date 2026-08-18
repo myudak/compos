@@ -1,62 +1,43 @@
 # Deployment Plan
 
-## Production topology
+## Recommended topology
 
 ```mermaid
 flowchart LR
-  PWA["Static PWA hosting + CDN"] --> Browser["COMPOS Operator + Owner installation"]
-  Browser --> TLS["TLS load balancer"]
-  TLS --> API["Stateless Fastify replicas"]
-  API --> PG[("Managed PostgreSQL primary")]
-  Worker["Independent worker replicas"] --> PG
-  PG --> Backup["Encrypted backup + PITR"]
-  API --> Obs["Central logs / metrics / alerts"]
-  Worker --> Obs
+  Browser["Installed/browser PWAs"] --> CDN["TLS CDN / reverse proxy"]
+  CDN --> Static["Operator + Entry + Owner assets"]
+  CDN --> API["Stateless NestJS API/consumers"]
+  API --> PG[("Managed PostgreSQL")]
+  API --> RMQ[("Managed RabbitMQ")]
+  PG --> Backup["Backup + PITR"]
 ```
 
-Development memakai Docker Compose. CI memakai ephemeral PostgreSQL dan `operator_pos_test`. Staging meniru topology/secrets production dengan synthetic merchant. Production menyajikan immutable hashed PWA assets lewat HTTPS, memisahkan API dan worker process, serta menempatkan managed PostgreSQL di region yang sama.
+Local/demo Docker memakai satu Nginx, one-shot migration/seed, satu API process, PostgreSQL, dan
+RabbitMQ persistent volumes. Ini evaluation sandbox, bukan production topology.
 
-## Isolated Render demo
+## Release steps
 
-```mermaid
-flowchart LR
-  Browser["Browser / installed PWA"] --> Hosted["Render web: Fastify + static PWA"]
-  Hosted --> DemoPG[("Render PostgreSQL")]
-  DemoWorker["Render background worker"] --> DemoPG
-```
+1. `pnpm run ci:full` dan backend lint/test/build hijau.
+2. OpenAPI snapshot tidak drift.
+3. Build immutable hashed assets untuk tiga PWA.
+4. Apply reviewed migration sebelum traffic cutover; seed hanya environment demo baru.
+5. Deploy API dengan secrets dari secret manager, bukan image/repo.
+6. Verify `/health`, login ketiga role, one sync settlement, conflict/reconciliation, reporting lag.
+7. Observe error/queue/DB metrics; rollback app image bila gate gagal. Database rollback mengikuti
+   migration-specific plan, bukan destructive reset.
 
-`render.yaml` adalah evaluation profile, bukan production target. PWA dan API disajikan dari origin
-yang sama agar Deploy Button tidak membutuhkan manual cross-service URL configuration. Worker tetap
-independen dan PostgreSQL tetap canonical. API/worker menjalankan migration sebelum start dengan
-advisory lock; seed demo hanya berjalan pada first deploy hook.
+## Required production controls
 
-Web service memakai free plan, worker memakai paid `starter`, dan free database kedaluwarsa setelah
-30 hari tanpa backup. Auto-deploy dimatikan supaya perubahan upstream tidak mengubah sandbox orang
-lain. Lihat [Render Demo Deployment](render_demo_deployment.md) sebelum approve resource.
+- TLS/HSTS, secure cookie domain, restrictive CORS/CSP;
+- unique JWT/offline-lease secrets and rotation procedure;
+- managed PostgreSQL backup/PITR plus restore drill;
+- durable Rabbit storage, queue length/DLQ alarm, connection alarm;
+- structured logs with request ID, sensitive-field redaction;
+- autoscaling/capacity rules based on measured queue lag/latency;
+- no public demo credentials or seed on shared production.
 
-## Release pipeline
+## Why not serverless-only frontend platforms
 
-1. Install dari frozen lockfile.
-2. Jalankan format, type-aware lint, strict typecheck, dan unit test.
-3. Reset/migrate/seed isolated test DB lalu integration test.
-4. Build contracts, API, dan PWA; jalankan Playwright.
-5. Publish versioned artifacts/container images.
-6. Apply forward migration sebelum rolling deploy API/worker.
-7. Smoke-test health, metrics, login, synthetic settlement, dan worker drain.
-
-Clean baseline adalah prototype policy. Sebelum ada live customer data, pindah ke additive, reviewed, reversible migrations. `db:reset` tidak boleh pernah dipakai di production.
-
-GitHub Actions hanya menjalankan repository quality gate dan tidak memanggil Render CLI, membuat
-service, atau menyentuh akun Render. `render.yaml` tetap menjadi deployment recipe yang harus direview
-di halaman Blueprint sebelum pengguna memilih untuk membuat sandbox-nya sendiri.
-
-## Security, capacity, dan recovery
-
-Gunakan TLS, secret manager, rotasi JWT/device activation secret, least-privilege DB role, encrypted backup, rate limit/WAF, private metrics endpoint, dan exact CORS origin. Jangan expose seed credentials.
-
-Scale stateless API secara horizontal dan sesuaikan connection pool dengan batas PostgreSQL. Worker bisa ditambah melalui safe event claiming. RabbitMQ atau broker lain baru ditambahkan ketika independent consumer, replay, atau throughput sudah menjadi bottleneck terukur.
-
-Hosted mode menyajikan Operator di `/` dan Owner di `/owner/`; `/v1`, `/health`, serta `/metrics`
-selalu menang dari SPA fallback. Hitung connection cap dengan
-`API replica × (operational + admin + reporting) + worker replica × worker`. Render sandbox memakai
-`8 + 2 + 2 + 4 = 16` potential connections dan local analytics karena tidak membawa provider secret.
+Static PWAs can live on any CDN, but continuous Rabbit consumer, publisher connection, retry topology,
+and PostgreSQL migrations need long-running backend infrastructure. Splitting only static hosting is
+valid; replacing Nest/Rabbit with short-lived functions is a separate architecture decision.

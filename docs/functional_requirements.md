@@ -1,41 +1,24 @@
 # Functional Requirements
 
-| ID    | Requirement                                                             | Acceptance boundary                                                              |
-| ----- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| FR-01 | Login/logout terkontrol, pembuatan akun, reset PIN, role, dan aktivasi. | Auth/Admin API dan UI.                                                           |
-| FR-02 | Device registration dan revocation oleh Admin.                          | Installation ID stabil; revoked session ditolak.                                 |
-| FR-03 | Membuat dan mengonfirmasi transaksi tanpa internet.                     | Network tidak ada di local commit path.                                          |
-| FR-04 | Recovery setelah restart.                                               | IndexedDB menyimpan draft, sale, outbox, catalog, session lease, dan device.     |
-| FR-05 | Automatic sync ketika reconnect.                                        | Health probe, online event, timer, dan due query.                                |
-| FR-06 | Mencegah duplicate/lost-response.                                       | Stable ID, payload hash, dan merchant-scoped unique constraint.                  |
-| FR-07 | Status provisional dan settled terlihat jelas.                          | Receipt, list, detail, dan sync queue.                                           |
-| FR-08 | Operasi concurrent multi-device.                                        | Identity per device; backend menerima transaksi satu merchant dengan aman.       |
-| FR-09 | Cash, Static QRIS, dan Transfer.                                        | Cash system-verifiable; QRIS/Transfer operator-asserted.                         |
-| FR-10 | Lifecycle pending/confirmed/void.                                       | Void hanya sebelum settlement; settled immutable.                                |
-| FR-11 | Append-only correction khusus Admin.                                    | Original transaction tidak pernah di-update.                                     |
-| FR-12 | Stock deduction setelah acceptance.                                     | Backend outbox worker membuat movement secara idempotent.                        |
-| FR-13 | Negative-stock discrepancy dan resolution.                              | Maksimal satu open discrepancy per product; resolution diaudit.                  |
-| FR-14 | Partial batch result dan bounded reconnect.                             | Maksimal 25 item; response order sama dengan candidate order.                    |
-| FR-15 | Administrasi catalog dan pricing.                                       | SKU unik per merchant, soft archive, historical snapshot.                        |
-| FR-16 | Catalog refresh dan stale-catalog operation.                            | Refresh saat login/start/reconnect/manual; historical snapshot diterima backend. |
-| FR-17 | Session dan offline lease.                                              | Token 12 jam, checkout lease 72 jam, data tetap ada setelah expiry.              |
-| FR-18 | Merchant isolation dan audit history.                                   | Semua query/mutation scoped ke merchant; Admin mutation diaudit.                 |
-| FR-19 | Separate Owner access.                                                  | Owner-only PWA/API; counter dan Admin role ditolak.                              |
-| FR-20 | Sales dashboard maksimal 90 hari.                                       | Daily series, top products, AOV, data-as-of, projection lag, merchant timezone.  |
-| FR-21 | Async insight generation.                                               | Queued job, status polling, history, aggregate-only provider, labelled fallback. |
-| FR-22 | Replay-safe reporting.                                                  | Transaction identity mencegah aggregate ganda; void tidak masuk projection.      |
-
-## Business rules
-
-- PIN harus numerik, panjang 4–8 digit.
-- Admin tidak boleh demote/deactivate dirinya sendiri atau menghapus final active Admin.
-- Role produk `OPERATOR`, `ADMIN`, dan `OWNER`; Admin hanya dapat membuat Operator/Admin dan semua
-  permission tetap divalidasi server-side.
-- Logout membersihkan active cart dan session setelah konfirmasi, tetapi device identity, catalog, confirmed sales, dan outbox tetap aman.
-- Catalog administration online-only. Perubahan stock hanya lewat reconciliation.
-- Harga/catalog offline boleh stale; item and price snapshot pada transaksi menjadi historical truth.
-- Authentication failure mem-pause sync, bukan menghapus queued sales.
-
-## Definition of done
-
-Sebuah requirement dianggap selesai kalau behavior-nya ada, contract tervalidasi, failure mode tertangani, test relevan lulus, dan traceability matrix menunjuk ke evidence yang bisa didemokan.
+| ID    | Requirement                                                     | Acceptance signal                                             |
+| ----- | --------------------------------------------------------------- | ------------------------------------------------------------- |
+| FR-01 | Owner onboarding membuat merchant + satu primary Owner.         | Transactional provisioning, tenant uniqueness.                |
+| FR-02 | Login email/password, rotating refresh, logout/revocation.      | 15m access, 7d refresh, server session invalidation.          |
+| FR-03 | Operator dapat membuka last offline session pada paired device. | Signed 7d lease; operator switch tetap online-only.           |
+| FR-04 | Owner membuat/deactivate Entry atau Operator.                   | Owner creation dari HTTP ditolak.                             |
+| FR-05 | Device adalah shared merchant counter dan bisa di-revoke.       | Server validates merchant/device/session binding.             |
+| FR-06 | Operator checkout penuh tanpa network.                          | Atomic IndexedDB transaction + provisional receipt.           |
+| FR-07 | Cart/draft survive reload tanpa resurrect stale write.          | Ordered durable draft persistence.                            |
+| FR-08 | Sync batch durable dan replay-safe.                             | Receipt + publisher confirm + hash mismatch rejection.        |
+| FR-09 | Operator melihat status settlement.                             | Poll `QUEUED/PROCESSING/SYNCED/CONFLICT/FAILED`.              |
+| FR-10 | Rabbit transient error retry 5s/30s/120s lalu DLQ.              | Terminal failure visible dan eligible retry Owner-only.       |
+| FR-11 | Stale catalog sale diterima dengan item snapshot.               | Same-merchant archived product tetap settle.                  |
+| FR-12 | Stock shortage menjadi conflict.                                | Owner confirm negative stock atau void.                       |
+| FR-13 | Entry mengelola catalog dan stock.                              | SKU uniqueness, soft archive, adjustment history.             |
+| FR-14 | Payment normal langsung verified.                               | Cash/QRIS/transfer menghasilkan `VERIFIED`.                   |
+| FR-15 | Reconciliation hanya exception workflow.                        | Open case → resolved valid/invalid.                           |
+| FR-16 | Invalid payment resolution append-only.                         | Payment `FAILED` + correction/void atomic; original retained. |
+| FR-17 | Owner melihat audit trail merchant.                             | Mutations mencatat actor, action, target, timestamp.          |
+| FR-18 | Owner melihat eventual sales dashboard.                         | Gross/net, count, AOV, daily, top products, freshness.        |
+| FR-19 | Semua data server merchant-scoped.                              | Cross-tenant integration test menolak akses.                  |
+| FR-20 | Tiga PWA punya role isolation.                                  | Wrong-role redirect actionable + server-side 403.             |

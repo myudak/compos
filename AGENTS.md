@@ -1,224 +1,114 @@
-# AGENTS.md — COMPOS Engineering Handoff
+# AGENTS.md — K-POS Engineering Handoff
 
-Dokumen ini berlaku untuk seluruh repository. Baca sebelum mengubah code, test, database, assets, atau docs. Kalau ada `AGENTS.md` yang lebih dekat ke file yang sedang dikerjakan, instruksi file tersebut lebih spesifik dan menang untuk subtree-nya.
+Instruksi ini berlaku untuk seluruh repository frontend. Backend canonical berada di sibling
+`../k-pos-be`; baca `../k-pos-be/AGENTS.md` kalau file itu tersedia sebelum mengubah backend.
 
-## 1. Kenali produknya dulu
+## Produk dan source of truth
 
-COMPOS adalah offline-first POS untuk merchant yang harus tetap melayani checkout ketika internet putus. Sale disimpan secara durable di device, masuk local outbox, lalu di-settle ke backend secara idempotent ketika koneksi kembali.
+K-POS adalah offline-first POS dengan tiga role dan tiga PWA:
 
-Mulai dari dokumen ini:
+- `OPERATOR`: checkout offline dan melihat local/settled history;
+- `ENTRY`: catalog, pricing, image, archive, stock adjustment, stock history;
+- `OWNER`: user/device administration, sync conflict/failure, payment exception, audit, reporting.
 
-1. [Project overview](docs/project_overview.md)
-2. [Product principles](docs/product_principles.md)
-3. [System architecture](docs/system_architecture.md)
-4. [Sync protocol](docs/sync_protocol.md)
-5. [Development guide](docs/development_guide.md)
-6. [Testing strategy](docs/testing_strategy.md)
-7. [Traceability matrix](docs/traceability_matrix.md)
+Urutan keputusan: product overview → FRD/NFR → architecture/user flow → backend OpenAPI → code.
+Backend `k-pos-be` adalah source of truth HTTP dan database. Snapshot kontrak frontend berada di
+`packages/api-client/openapi.json`; jangan mengarang endpoint dari UI.
 
-Bahasa dokumentasi adalah Indonesian-first dengan technical English yang natural. Jangan membuat section English dan “ringkasan Bahasa Indonesia” yang menduplikasi isi.
+Mulai dari [docs/README.md](docs/README.md), [docs/system_architecture.md](docs/system_architecture.md),
+dan [docs/sync_protocol.md](docs/sync_protocol.md).
 
-## 2. Repository map
+## Repository map
 
 ```text
-apps/
-  operator-web/             React 19 + Vite PWA
-    src/app/                routing, shell, composition root, ephemeral UI store
-    src/features/           feature UI, hooks, queries, application services
-    src/infrastructure/     API transport, Dexie, browser persistence
-    src/shared/             reusable UI dan domain-neutral helpers
-    e2e/                    Playwright production-build scenarios
-    public/brand/           official COMPOS icon dan banner
-  owner-web/                React 19 + Vite PWA untuk reporting dan insight Owner
-  api/                      Fastify API + PostgreSQL worker
-    src/modules/            vertical business modules, services, repositories, mappers
-    src/routes/             thin HTTP adapters
-    src/database/           transaction helper dan database infrastructure
-    src/http/               auth/error/request infrastructure
-    src/scripts/            migrate, seed, smoke, dan acceptance scenarios
-    migrations/             clean prototype baseline
-packages/
-  contracts/                canonical Zod wire contracts dan inferred DTOs
-docs/                       product and engineering playbook + ADR
+apps/operator-web/  React/Vite PWA, root scope, Dexie local-first write path
+apps/entry-web/     React/Vite PWA, /entry/, online catalog dan inventory
+apps/owner-web/     React/Vite PWA, /owner/, online control/reporting
+packages/api-client pinned OpenAPI, generated types, Zod runtime schemas, transport
+deployment/         Nginx same-origin routing
+../k-pos-be/        NestJS, Prisma/PostgreSQL, RabbitMQ consumer
 ```
 
-Jangan membuat `packages/shared`, `packages/database`, generic domain framework, atau package baru tanpa minimal dua consumer nyata.
+Jangan menambah generic shared/domain/database package tanpa dua consumer nyata. UI boleh berbagi
+wire client, bukan business state atau persistence detail.
 
-## 3. Setup dan commands
-
-Requirements: Node.js 22+, pnpm 10, Docker Desktop/Compose.
+## Commands
 
 ```bash
 pnpm install
-pnpm db:up
-pnpm db:reset
+pnpm stack:up
 pnpm dev
-```
-
-`pnpm dev` menjalankan Operator (`5173`), Owner (`5174`), API (`3001`), dan worker.
-
-Quality commands:
-
-```bash
-pnpm format
-pnpm format:check
-pnpm lint
-pnpm typecheck
-pnpm test
+pnpm run ci
 pnpm test:integration
 pnpm test:e2e
-pnpm test:load
-pnpm build
-pnpm run ci
+pnpm run ci:full
 ```
 
-Lint canonical memakai Oxlint type-aware dan format canonical memakai Oxfmt. Jangan menambahkan
-ESLint atau Prettier kembali kecuali ada rule/plugin blocker yang terdokumentasi.
+`pnpm stack:up` membangun full production-like stack di `http://localhost:8080`. Jangan reset volume
+atau database tanpa memastikan target lokal/test dan ada izin eksplisit.
 
-Gunakan command paling kecil yang relevan selama iterasi, lalu verifikasi sebanding dengan risiko sebelum handoff. Perubahan docs-only minimal menjalankan `pnpm format:check` dan link check. Perubahan sync, persistence, auth, database, atau contracts membutuhkan test terkait dan build.
+## Invariants yang tidak boleh rusak
 
-## 4. Invariants yang tidak boleh rusak
+### Local checkout
 
-### Atomic local checkout
+- Transaction, delivery outbox, stock projection, dan draft cleanup commit atomically di IndexedDB.
+- Receipt tidak boleh muncul sebelum local commit berhasil.
+- Checkout tidak melakukan synchronous backend request.
+- Logout, reload, auth expiry, atau network loss tidak menghapus queued sale.
+- Offline lease Operator berlaku tujuh hari; data lama tetap readable setelah expiry.
 
-- Receipt tidak boleh muncul sebelum transaction + local outbox tersimpan atomically di IndexedDB.
-- Confirm sale juga meng-update local stock projection dan membersihkan draft dalam transaction boundary yang sama.
-- Checkout offline tidak boleh bergantung pada network request.
-- Rapid draft writes harus ordered; write lama tidak boleh menimpa cart baru atau menghidupkan draft yang sudah cleared.
+### Idempotency dan sync
 
-### Stable identity dan idempotency
+- `offline_uuid` stabil untuk semua retry; UUID v4/v7 diterima backend.
+- `X-Device-ID` authoritative; jangan kirim `id_device` per item.
+- Operator mengirim maksimal 25 item, backend menerima maksimal 100.
+- HTTP `200 accepted` berarti durable queued, bukan settled.
+- Poll receipt sampai `SYNCED | CONFLICT | FAILED`.
+- ID sama/payload beda harus berhenti sebagai integrity error; jangan generate ID baru diam-diam.
+- RabbitMQ outage tidak boleh mematikan REST API; queued local data tetap utuh.
 
-- Setiap sale memakai stable client-generated UUIDv7.
-- Retry selalu memakai transaction ID dan canonical payload yang sama.
-- Backend uniqueness boundary adalah `(merchant_id, transaction_id)`.
-- ID sama + payload sama menghasilkan `ALREADY_PROCESSED`.
-- ID sama + payload berbeda menghasilkan `ID_REUSE_PAYLOAD_MISMATCH`; jangan overwrite history.
-- Transport bersifat at-least-once, tetapi business effect harus exactly-once.
+### Ledger, payment, dan stock
 
-### Durable queue
+- Confirmed transaction append-only. Effective void/correction adalah record baru.
+- `PaymentStatus` hanya `VERIFIED | FAILED`.
+- Cash, static QRIS, dan transfer normal langsung `VERIFIED` setelah Operator mengecek.
+- `PaymentReconciliation` hanya exception case: `OPEN | RESOLVED_VALID | RESOLVED_INVALID`.
+- Invalid resolution atomically membuat payment `FAILED` dan append-only void/correction.
+- Stock conflict tidak menghapus sale; Owner memilih confirm (negative stock + discrepancy) atau void.
+- Reporting eventual dan harus menampilkan freshness/lag.
 
-- Logout, auth failure, token expiry, browser restart, dan network loss tidak boleh menghapus confirmed sales atau outbox.
-- Auth error mem-pause sync dan meminta re-authentication.
-- Startup harus memulihkan abandoned `SYNCING` record.
-- `retryCount` hanya bertambah setelah failure.
-- Sync hanya mengambil due records, maksimal 25 candidate per batch, dan menjaga response order.
+### Auth dan tenant
 
-### Immutable settlement
+- Access token 15 menit disimpan in-memory; refresh token rotating ada di HttpOnly cookie.
+- Offline lease ditandatangani dan terikat merchant, device, Operator.
+- Device adalah shared merchant counter; Operator switch butuh online authentication.
+- Semua server authorization merchant-scoped dari authenticated identity.
+- UI redirect bukan security boundary.
+- Owner hanya dibuat lewat onboarding/provisioning; Owner hanya membuat Entry/Operator.
 
-- Settled transaction tidak boleh diedit atau dihapus.
-- Payment correction bersifat append-only dan Admin-only.
-- Transaction items menyimpan name/price/payment snapshot supaya perubahan catalog tidak mengubah history.
+## Code boundaries
 
-### Eventual inventory
+- Page compose feature components/hooks; jangan taruh raw fetch, Dexie query, atau transaction building
+  di JSX handler besar.
+- Zustand hanya ephemeral UI state. Durable state masuk repository/service.
+- Wire tetap `snake_case`; mapper/client mengubahnya ke domain shape bila diperlukan.
+- Validasi response runtime; TypeScript cast bukan validation.
+- Service worker Operator wajib mengecualikan `/entry/`, `/owner/`, `/api/`, `/health`, `/metrics`.
+- Jangan mengubah generated `packages/api-client/src/generated/schema.d.ts` manual.
+- Setelah backend contract berubah: generate backend OpenAPI, copy snapshot, generate client, review
+  diff, dan jalankan `pnpm openapi:check`.
 
-- Inventory bukan cross-device reservation system.
-- Backend menerima sale dahulu; PostgreSQL outbox worker menerapkan stock movement secara idempotent.
-- Negative stock membuka discrepancy; stock correction dilakukan lewat reconciliation, bukan catalog editor.
+## Verification minimum
 
-### Tenant dan session safety
+| Area              | Minimum                                              |
+| ----------------- | ---------------------------------------------------- |
+| Docs/copy         | `pnpm format:check`, `pnpm docs:check`               |
+| React UI          | relevant test, typecheck, production build           |
+| Dexie/checkout    | unit + fake IndexedDB + Operator build               |
+| API client        | OpenAPI drift, client test/typecheck, all PWA builds |
+| Sync/auth/payment | backend integration + relevant Playwright scenario   |
+| Rabbit/DB schema  | real PostgreSQL/RabbitMQ integration + Docker smoke  |
+| Cross-app flow    | full `pnpm test:e2e`                                 |
 
-- Semua query/mutation business data harus merchant-scoped dari authenticated identity, bukan merchant ID bebas dari body.
-- Online JWT berlaku 12 jam dan memiliki server-side session `jti`.
-- Local offline checkout lease berlaku maksimal 72 jam dari successful online authentication.
-- Setelah lease habis, existing data tetap readable/queued tetapi checkout baru diblokir.
-- Admin tidak boleh deactivate/demote dirinya sendiri atau menghapus final active Admin.
-- Role produk adalah `OPERATOR`, `ADMIN`, dan `OWNER`; Owner hanya boleh memakai Owner API/PWA.
-- Admin tidak boleh membuat/mengubah Owner; provisioning Owner adalah non-HTTP command.
-
-### Reporting dan insight
-
-- Dashboard membaca read model, bukan scan ledger pada request path.
-- `reporting_applied_transactions` adalah idempotency boundary; replay tidak boleh menggandakan
-  aggregate.
-- Reporting lag harus terlihat di UI. Jangan menyamarkan eventual consistency sebagai real-time.
-- Provider hanya menerima aggregate metrics. PIN, token, operator identity, raw transaction, dan
-  device data tidak boleh keluar.
-- Fallback wajib diberi label `LOCAL_ANALYTICS`, bukan external AI.
-
-## 5. Code boundaries
-
-### Contracts
-
-- `packages/contracts` adalah satu-satunya sumber wire schema dan DTO lintas web/API.
-- Tambahkan atau ubah Zod schema di contracts sebelum mengubah producer dan consumer.
-- API `/v1` memakai canonical `camelCase`; database rows tetap `snake_case` dan diubah lewat explicit mapper.
-- Standard error envelope: `{ code, message, details?, requestId }`.
-- Web client wajib memvalidasi API response; jangan memakai generic cast untuk “membuat TypeScript diam”.
-
-### Operator web
-
-- Page/route hanya compose feature components dan hooks.
-- Jangan query Dexie atau memanggil raw API client langsung dari page component.
-- Business use case seperti checkout berada di application service, bukan JSX event handler besar.
-- Zustand hanya untuk ephemeral UI state. Durable state harus masuk repository/persistence service.
-- Demo fixtures hanya boleh aktif saat `VITE_DEMO_MODE=true`.
-- Gunakan shadcn primitives/theme yang sudah ada. Hindari decorative eyebrow copy, generic AI marketing copy, dan visual yang mengganggu speed kasir.
-
-### API dan worker
-
-- Route hanya authenticate, parse contract, call service, dan serialize response.
-- SQL tinggal di typed repository; jangan taruh SQL di route atau pakai `SELECT *`.
-- Gunakan canonical `withTransaction`; jangan duplikasi manual `BEGIN/COMMIT/ROLLBACK`.
-- Backend batch boleh diproses concurrently dalam bounded batch, tetapi result order harus sama dengan input.
-- Worker entrypoint, processor, dan event handlers tetap terpisah.
-- Event baru wajib punya explicit handler, idempotency rule, retry behavior, dan test.
-- Pool operational, Admin, reporting, dan worker punya budget terpisah; hitung total per replica
-  sebelum menaikkan concurrency.
-- Inventory, reporting, dan insight tetap independent loops walau satu worker deployment.
-
-## 6. Cara mengerjakan perubahan
-
-1. Baca file terkait dan `git status` sebelum edit. Worktree mungkin berisi perubahan milik user.
-2. Temukan contract, caller, persistence boundary, dan test yang terdampak; jangan patch satu layer secara buta.
-3. Buat perubahan terkecil yang menyelesaikan root cause.
-4. Jangan refactor area lain kecuali memang diperlukan untuk correctness atau diminta user.
-5. Update docs/ADR/traceability bila behavior, policy, API, setup, atau trade-off berubah.
-6. Jalankan formatter dan test yang proporsional.
-7. Review `git diff --check`, changed files, dan generated/untracked files sebelum commit.
-8. Buat commit kecil, buildable, dan fokus. Jangan amend/rewrite commit user tanpa permintaan eksplisit.
-
-Gunakan `apply_patch` untuk source/docs edits. Jangan menghapus, reset, atau overwrite file user untuk “membersihkan” worktree.
-
-## 7. Verification matrix
-
-| Area berubah                 | Minimum verification                                             |
-| ---------------------------- | ---------------------------------------------------------------- |
-| Docs/Markdown                | `pnpm format:check`, local link check                            |
-| React UI/copy                | web typecheck, relevant test, production web build               |
-| Checkout/Dexie               | unit + fake IndexedDB integration + web build                    |
-| Sync policy/service          | sync unit/integration, lost-response/partial-batch coverage      |
-| Contracts                    | contracts build/test, API + web typecheck/build                  |
-| API route/service/repository | API typecheck, isolated PostgreSQL integration                   |
-| Auth/admin/catalog           | permission + merchant-isolation integration tests                |
-| Worker/inventory             | worker replay/idempotency integration tests                      |
-| Cross-layer critical flow    | relevant Playwright scenario; full `pnpm run ci` sebelum release |
-
-Jangan menyatakan “production-ready” hanya karena build hijau. Production membutuhkan secrets management, monitoring, backup/PITR, restore drill, security/accessibility/load testing, dan additive migrations seperti dijelaskan di docs.
-
-## 8. Database safety
-
-- `pnpm db:reset` menghapus schema `public`; gunakan hanya untuk local/test prototype database.
-- Reset script harus tetap menolak nama database selain `operator_pos` atau `operator_pos_*`.
-- Jangan menjalankan reset pada production atau database yang targetnya tidak terverifikasi.
-- Setelah live customer data ada, gunakan additive, reviewed, reversible migrations. Clean baseline policy tidak lagi berlaku.
-- Seed credentials dan `COMPOS-DEMO` hanya untuk demo/local environment.
-
-## 9. Git dan local tooling
-
-- Preserve perubahan user yang tidak terkait.
-- Jangan commit secret, `.env`, database dump, `dist`, `node_modules`, coverage, Playwright output, atau temporary image files.
-- `.agents/`, `.claude/`, dan `skills-lock.json` adalah local agent tooling milik user. Jangan edit atau commit kecuali user meminta secara eksplisit.
-- Official brand assets berada di `apps/operator-web/public/brand/`.
-- Git tidak track empty directories. Jangan membuat placeholder folder tanpa file/owner yang jelas.
-
-## 10. Handoff yang bagus
-
-Final report harus singkat dan evidence-based:
-
-- Outcome yang berubah.
-- File atau subsystem utama yang disentuh.
-- Command/test yang dijalankan beserta hasilnya.
-- Warning, trade-off, atau pekerjaan tersisa yang nyata.
-- Commit hash jika perubahan di-commit.
-
-Jangan menyembunyikan skipped test, existing warning, atau asumsi penting. Jangan menuliskan step-by-step panjang kalau outcome dan evidence sudah cukup.
+Sebelum handoff jalankan `git diff --check`, audit untracked/generated files, dan laporkan skipped test
+secara jujur. `.agents/`, `.claude/`, dan `skills-lock.json` adalah local tooling; jangan edit/commit.

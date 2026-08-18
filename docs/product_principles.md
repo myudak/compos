@@ -1,68 +1,38 @@
-# Product Principles: Sync Without Signal
+# Product Principles
 
-## Masalah yang diselesaikan
+## 1. Local commit adalah keberhasilan checkout pertama
 
-Kasir harus tetap melayani pembeli saat internet lambat atau benar-benar putus. Di saat yang sama,
-merchant bisa punya lebih dari satu device, payment method punya tingkat verifikasi berbeda, dan
-backend tidak boleh membuat transaksi ganda ketika request di-retry. Jadi problem-nya bukan sekadar
-“bisa offline”, tetapi menjaga consistency sambil tetap available.
+Operator tidak menunggu cloud. Receipt lokal hanya dibuat setelah transaction dan delivery outbox
+tersimpan atomically di device.
 
-## Invariants COMPOS
+## 2. Queued bukan settled
 
-COMPOS dibangun di atas empat invariants:
+API hanya menyatakan message sudah durable setelah receipt commit dan Rabbit publisher confirm.
+Canonical transaction baru ada setelah consumer PostgreSQL commit. UI harus menunjukkan perbedaan
+`PROVISIONAL`, `QUEUED`, dan terminal status.
 
-1. **Local sale tidak boleh hilang.** Receipt baru muncul setelah sale + outbox tersimpan atomically.
-2. **Retry tidak boleh menggandakan business effect.** Stable transaction ID, payload hash, dan
-   merchant-scoped unique constraint menangani lost response.
-3. **Status harus jujur.** Offline receipt bersifat provisional sampai backend mengembalikan
-   `ACCEPTED` atau `ALREADY_PROCESSED`.
-4. **Conflict tidak boleh diam-diam dioverwrite.** Settled sale immutable; payment correction dan
-   stock reconciliation dilakukan append-only oleh Admin.
+## 3. Exactly-once adalah business effect
 
-## Actor dan scope
+Transport boleh mengirim ulang. Unique idempotency key, payload hash, transactional settlement, dan
+idempotent event projection mencegah duplicate ledger/stock/reporting effect.
 
-- **Kasir / OPERATOR:** login, checkout, melihat local transactions dan sync status, void sebelum
-  settlement.
-- **Merchant ADMIN:** semua kemampuan kasir plus mengelola user, device, catalog/pricing,
-  correction, discrepancy, dan audit history dalam merchant-nya.
-- **API + worker:** menerima transaction secara idempotent, menyimpan immutable history, lalu
-  memproyeksikan inventory secara eventual.
+## 4. History tidak diedit
 
-React Native, dynamic QRIS gateway verification, cross-device stock reservation, dan external
-message broker berada di luar scope prototype.
+Confirmed sale, item name/SKU/price snapshot, dan original payment tetap auditable. Void/correction
+adalah append-only records yang membentuk effective status.
 
-## Payment semantics
+## 5. Payment trusted by Operator, reconciliation by exception
 
-| Method      | Makna saat checkout                                                              |
-| ----------- | -------------------------------------------------------------------------------- |
-| Cash        | Bisa diverifikasi sistem dari tendered amount dan change.                        |
-| Static QRIS | Operator menyatakan pembayaran sudah dilihat; backend tidak punya gateway proof. |
-| Transfer    | Operator menyatakan transfer sudah dicek; tetap subject to correction.           |
+Normal payment langsung `VERIFIED`. Reconciliation hanya dibuka ketika ada bukti payment bermasalah.
+Invalid resolution mengubah payment ke `FAILED` dan membuat append-only void dalam satu database
+transaction.
 
-UI dan receipt tidak boleh memberi kesan QRIS/Transfer sudah bank-verified kalau memang belum ada
-payment provider integration.
+## 6. Inventory bersifat eventual
 
-## Lifecycle transaksi
+Tidak ada distributed reservation antar counter. Stock shortage menghasilkan `CONFLICT`; Owner dapat
+confirm dengan negative stock/discrepancy atau void tanpa stock movement.
 
-```mermaid
-flowchart LR
-  Draft --> Confirmed["Confirmed lokal / provisional"]
-  Confirmed --> Queued["PENDING di outbox"]
-  Queued --> Settled["Backend settled"]
-  Queued --> Failed["Permanent failure / review"]
-  Draft --> Void
-  Confirmed --> Voidable["Void hanya sebelum settlement"]
-  Settled --> Correction["Append-only Admin correction"]
-```
+## 7. Degraded mode adalah behavior yang didesain
 
-Inventory baru berubah di source of truth setelah backend acceptance dan worker processing. Device
-yang offline boleh menjual berdasarkan last-known catalog/stock sehingga negative stock mungkin
-terjadi. Itu trade-off yang eksplisit: counter availability diprioritaskan, lalu discrepancy
-diselesaikan lewat audited reconciliation.
-
-## Kriteria sukses produk
-
-COMPOS dianggap menjaga jaminan utamanya ketika demo dan automated tests membuktikan offline
-checkout, reload recovery, reconnect settlement, lost-response retry, partial batch, multi-device
-operation, session/device revocation, immutable correction, eventual inventory reconciliation,
-reporting convergence, dan workload isolation saat Owner membaca analytics.
+RabbitMQ down tidak menjatuhkan auth/catalog/reporting REST. Local checkout lanjut, sync retryable,
+dan health endpoint jujur menyatakan dependency degraded.

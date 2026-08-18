@@ -36,21 +36,6 @@ const TransactionsPage = lazy(() =>
 const LoginPage = lazy(() =>
   import("@/features/auth/login-page").then((module) => ({ default: module.LoginPage })),
 )
-const ReconciliationPage = lazy(() =>
-  import("@/features/reconciliation/reconciliation-page").then((module) => ({
-    default: module.ReconciliationPage,
-  })),
-)
-const AdminUsersPage = lazy(() =>
-  import("@/features/admin-users/admin-users-page").then((module) => ({
-    default: module.AdminUsersPage,
-  })),
-)
-const AdminCatalogPage = lazy(() =>
-  import("@/features/admin-catalog/admin-catalog-page").then((module) => ({
-    default: module.AdminCatalogPage,
-  })),
-)
 
 function RouteFallback() {
   return (
@@ -114,36 +99,6 @@ export default function App() {
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/sync" element={<SyncPage />} />
             <Route path="/settings" element={<SettingsPage />} />
-            <Route
-              path="/reconciliation"
-              element={
-                session?.operator.role === "ADMIN" ? (
-                  <ReconciliationPage />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
-            <Route
-              path="/admin/users"
-              element={
-                session?.operator.role === "ADMIN" ? (
-                  <AdminUsersPage />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
-            <Route
-              path="/admin/catalog"
-              element={
-                session?.operator.role === "ADMIN" ? (
-                  <AdminCatalogPage />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

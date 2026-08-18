@@ -1,46 +1,51 @@
-# Strategi Testing
+# Testing Strategy
 
-Tujuan test COMPOS bukan cuma mengejar coverage, tetapi membuktikan invariants paling berisiko: local atomicity, durable recovery, idempotency, merchant isolation, session policy, dan immutable settlement.
+Test K-POS membuktikan invariants dan failure behavior, bukan sekadar line coverage.
 
-## Test pyramid
+| Layer               | Bukti                                                                                                      |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Unit                | payment policy, roles, payload hash, sync transition, retry, timezone/report math                          |
+| Browser integration | atomic checkout, ordered draft, reload recovery, session lease, terminal cleanup                           |
+| PostgreSQL/Rabbit   | auth/device binding, receipt recovery, idempotency, mismatch, retries, conflict, reconciliation, reporting |
+| Hosting             | three SPA deep links, service-worker scopes, API precedence, health/metrics                                |
+| Playwright          | production build across three roles and degraded broker                                                    |
 
-| Layer                           | Fokus                                                                                                                      |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Unit                            | Payment rules, transaction construction, sync transition/backoff, offline lease, permission, last-admin protection.        |
-| Browser persistence integration | Atomic checkout, ordered draft, restart/void, outbox recovery, catalog replacement, expired session dengan fake IndexedDB. |
-| API/PostgreSQL integration      | Login/logout/revocation, tenant isolation, admin user/catalog, lost response, partial batch, correction, worker replay.    |
-| Playwright                      | Production-build user journey lintas offline/reload/reconnect dan multi-context.                                           |
+## Browser acceptance scenarios
 
-## Skenario E2E utama
+1. Offline checkout survive reload.
+2. Reconnect auto enqueue dan settle.
+3. Dropped successful HTTP response retries exactly once.
+4. Stock conflict terlihat Owner lalu di-confirm/void.
+5. Entry archive product saat Operator masih memakai cached catalog.
+6. Invalid payment reconciliation menghasilkan `FAILED` + append-only void.
+7. Role isolation pada tiga UI dan endpoint.
+8. Device revoke preserve queued local sale.
+9. Owner report eventually converge.
+10. Rabbit unavailable menghasilkan degraded health sementara REST login tetap jalan.
 
-1. Offline checkout lalu browser reload.
-2. Reconnect dan automatic settlement.
-3. Successful response dijatuhkan, lalu retry exactly-once.
-4. Dua browser/device context pada merchant yang sama.
-5. Partial batch rejection.
-6. Admin membuat/deactivate kasir dan permission tetap enforce.
-7. Admin mengubah harga/archive product lalu catalog refresh.
-8. Offline lease expired: data tetap ada, checkout baru diblokir.
-
-## Command
+## Commands
 
 ```bash
 pnpm test
 pnpm test:integration
 pnpm test:e2e
-pnpm run ci
+pnpm run ci:full
 ```
 
-Integration test memakai database terisolasi `operator_pos_test`. Playwright menjalankan production build dan menyimpan trace/screenshot saat failure. CI menjalankan frozen install, format, type-aware lint, strict typecheck, unit/integration test, build, lalu browser scenarios dengan artifact on failure.
+Integration dan E2E memakai real PostgreSQL/RabbitMQ. Mock queue tidak cukup membuktikan publisher
+confirm, retry TTL, ACK-after-commit, atau durable recovery.
 
-## Evidence dan batasannya
+## Performance evidence
 
-Automated tests adalah executable evidence untuk behavior yang repeatable. Demo manual tetap diperlukan untuk UX dan presentasi, sedangkan load, security, accessibility, serta restore drills perlu dilakukan sebelum production. Test yang bergantung ke time/random/network harus memakai injected ports atau controlled fixtures supaya deterministic.
+Baseline load harus mencatat commit, OS/CPU/RAM, Docker limits, DB/Rabbit versions, merchant count,
+duration, concurrency, dan percentile. Acceptance: local checkout p95 `<500ms`, enqueue `<500ms`,
+settlement `<750ms`, dashboard `<1.5s`, projection lag `<30s`, zero duplicate/lost effect.
 
-## Mixed-load evidence
+Local verification 18 Agustus 2026 pada Windows `win32/x64`, Node `v25.6.0`, dan Docker Desktop:
 
-`pnpm test:load` menjalankan 50 merchant selama 15 detik dengan concurrent settlement, Admin access,
-Owner dashboard, insight jobs, dan worker lanes. Harness memverifikasi canonical ledger count sama
-dengan unique IDs dan reporting projection. Target p95: local enqueue `<500 ms`, settlement `<750 ms`,
-dashboard `<1.5 s`. `pnpm test:load:500` adalah capacity profile lima menit yang tidak dijalankan
-otomatis pada laptop tanpa mencatat environment.
+| Profile                |  Sale | Enqueue p95 | Settlement p95 | Dashboard p95 | Integrity                                |
+| ---------------------- | ----: | ----------: | -------------: | ------------: | ---------------------------------------- |
+| 50 merchant / 15 detik |   250 |   139,75 ms |          76 ms |      38,86 ms | 250/250 terminal; nol lost/duplicate     |
+| 500 merchant / 5 menit | 5.000 |   127,60 ms |          71 ms |      25,57 ms | 5.000/5.000 terminal; nol lost/duplicate |
+
+Production-build Playwright juga lulus 9/9 browser scenario dan Rabbit degraded/recovery smoke. Hasil ini adalah baseline supported local environment, bukan SLA production universal.
